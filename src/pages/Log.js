@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, SECTORS, LOUGH_SECTORS, CONDITIONS, LINES, LOUGH_METHODS, RIVER_METHODS, RETRIEVE_SPEEDS, RETRIEVE_ACTIVATIONS, PLACING_OPTIONS } from '../lib/supabase'
+import SectorMap from '../components/SectorMap'
 import { useAuth } from '../hooks/useAuth'
 
 function ChipGroup({ options, selected, onChange, multi = true }) {

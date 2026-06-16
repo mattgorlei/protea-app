@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, SECTORS } from '../lib/supabase'
+import { supabase, SECTORS, LOUGH_SECTORS } from '../lib/supabase'
+import SectorMap from '../components/SectorMap'
 
 export default function Intel({ profile }) {
   const [sector, setSector] = useState(SECTORS[0])
@@ -146,6 +147,13 @@ export default function Intel({ profile }) {
               </>
             )}
           </div>
+
+          {LOUGH_SECTORS.includes(sector) && (
+            <>
+              <div className="section-label">Sector map</div>
+              <SectorMap sector={sector} profile={profile} flies={flies} />
+            </>
+          )}
 
           {topFlies.length > 0 && (
             <>
