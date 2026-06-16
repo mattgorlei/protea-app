@@ -1,6 +1,80 @@
 import { useState, useEffect } from 'react'
 import { supabase, SECTORS } from '../lib/supabase'
 
+function FlyCard({ fly, catchCount, showToast }) {
+  const [editingPhoto, setEditingPhoto] = useState(false)
+  const [editPhoto, setEditPhoto] = useState(null)
+  const [editPreview, setEditPreview] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  async function savePhoto() {
+    if (!editPhoto) return
+    setSaving(true)
+    console.log('Saving photo for fly:', fly.id, fly.name)
+    const ext = editPhoto.name.split('.').pop()
+    const path = `${Date.now()}.${ext}`
+    const { error: uploadError } = await supabase.storage.from('fly-photos').upload(path, editPhoto)
+    console.log('Upload result:', uploadError || 'success')
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from('fly-photos').getPublicUrl(path)
+      const photoUrl = urlData.publicUrl + '?t=' + Date.now()
+      const { error: dbError } = await supabase.from('flies').update({ photo_url: photoUrl }).eq('id', fly.id)
+      console.log('DB update result:', dbError || 'success')
+      if (!dbError) showToast('Photo updated')
+      else showToast('DB error: ' + dbError.message)
+    } else {
+      showToast('Upload failed: ' + uploadError.message)
+    }
+    setSaving(false)
+    setEditingPhoto(false)
+    setEditPhoto(null)
+    setEditPreview(null)
+  }
+
+  const displayPhoto = editPreview || fly.photo_url
+
+  return (
+    <div className="fly-card">
+      <div className="fly-img">
+        {displayPhoto
+          ? <img src={displayPhoto} alt={fly.name} />
+          : <span style={{ fontSize: 28 }}>🪰</span>
+        }
+      </div>
+      <div className="fly-name">{fly.name}</div>
+      <div className="fly-meta">Size {fly.size}</div>
+      {fly.sector && <div className="fly-meta">{fly.sector}</div>}
+      <div className="fly-meta">Added by {fly.profiles?.name || 'team'}</div>
+      <div className="fly-catches">
+        {catchCount ? `${catchCount} fish caught` : 'No catches yet'}
+      </div>
+      {editingPhoto ? (
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {editPreview && <img src={editPreview} alt="preview" style={{ width: '100%', borderRadius: 6, maxHeight: 80, objectFit: 'cover' }} />}
+          <div style={{ display: 'flex', gap: 5 }}>
+            <label htmlFor={'edit-cam-' + fly.id} style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ padding: '6px', textAlign: 'center', fontSize: 11, cursor: 'pointer' }}>📷</div>
+            </label>
+            <label htmlFor={'edit-gal-' + fly.id} style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ padding: '6px', textAlign: 'center', fontSize: 11, cursor: 'pointer' }}>🖼️</div>
+            </label>
+          </div>
+          <input id={'edit-cam-' + fly.id} type="file" accept="image/*" capture="environment" onChange={e => { const f = e.target.files[0]; if(f){setEditPhoto(f);setEditPreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
+          <input id={'edit-gal-' + fly.id} type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){setEditPhoto(f);setEditPreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
+          <div style={{ display: 'flex', gap: 5 }}>
+            <button className="btn" style={{ marginTop: 0, flex: 1, padding: '7px', fontSize: 12 }} onClick={savePhoto} disabled={saving || !editPhoto}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button className="btn btn-secondary" style={{ marginTop: 0, flex: 1, padding: '7px', fontSize: 12 }} onClick={() => { setEditingPhoto(false); setEditPhoto(null); setEditPreview(null) }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setEditingPhoto(true)} style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Update photo</button>
+      )}
+    </div>
+  )
+}
+
 export default function Flybox({ profile, showToast }) {
   const [flies, setFlies] = useState([])
   const [loading, setLoading] = useState(true)
@@ -212,42 +286,7 @@ export default function Flybox({ profile, showToast }) {
           </div>
           <div className="fly-grid" style={{ marginBottom: 16 }}>
         {grpFlies.map(fly => (
-          <div className="fly-card" key={fly.id}>
-            <div className="fly-img" style={{ position: 'relative' }}>
-              {fly.photo_url
-                ? <img src={editingFlyId === fly.id && editPreview ? editPreview : fly.photo_url} alt={fly.name} />
-                : <span style={{ fontSize: 28 }}>🪰</span>
-              }
-            </div>
-            <div className="fly-name">{fly.name}</div>
-            <div className="fly-meta">Size {fly.size}</div>
-            {fly.sector && <div className="fly-meta">{fly.sector}</div>}
-            <div className="fly-meta">Added by {fly.profiles?.name || 'team'}</div>
-            <div className="fly-catches">
-              {catchCounts[fly.id] ? `${catchCounts[fly.id]} fish caught` : 'No catches yet'}
-            </div>
-            {editingFlyId === fly.id ? (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {editPreview && <img src={editPreview} alt="preview" style={{ width: '100%', borderRadius: 6, maxHeight: 80, objectFit: 'cover' }} />}
-                <div style={{ display: 'flex', gap: 5 }}>
-                  <label htmlFor={'edit-cam-' + fly.id} style={{ flex: 1, margin: 0 }}>
-                    <div className="upload-box" style={{ padding: '6px', textAlign: 'center', fontSize: 11, cursor: 'pointer' }}>📷</div>
-                  </label>
-                  <label htmlFor={'edit-gal-' + fly.id} style={{ flex: 1, margin: 0 }}>
-                    <div className="upload-box" style={{ padding: '6px', textAlign: 'center', fontSize: 11, cursor: 'pointer' }}>🖼️</div>
-                  </label>
-                </div>
-                <input id={'edit-cam-' + fly.id} type="file" accept="image/*" capture="environment" onChange={e => { const f = e.target.files[0]; if(f){setEditPhoto(f);setEditPreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
-                <input id={'edit-gal-' + fly.id} type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){setEditPhoto(f);setEditPreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
-                <div style={{ display: 'flex', gap: 5 }}>
-                  <button className="btn" style={{ marginTop: 0, flex: 1, padding: '7px', fontSize: 12 }} onClick={() => updateFlyPhoto(fly.id)} disabled={editSubmitting || !editPhoto}>{editSubmitting ? 'Saving...' : 'Save'}</button>
-                  <button className="btn btn-secondary" style={{ marginTop: 0, flex: 1, padding: '7px', fontSize: 12 }} onClick={() => { setEditingFlyId(null); setEditPhoto(null); setEditPreview(null) }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => setEditingFlyId(fly.id)} style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Update photo</button>
-            )}
-          </div>
+          <FlyCard key={fly.id} fly={fly} catchCount={catchCounts[fly.id]} showToast={showToast} />
           ))}
           </div>
         </div>
