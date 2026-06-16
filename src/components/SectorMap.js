@@ -5,9 +5,9 @@ const MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY
 
 // Default centre coords for each lough sector
 const SECTOR_COORDS = {
-  'Lough Craghy': { lat: 55.0362, lng: -8.1841, zoom: 14 },
-  'Lough Anure':  { lat: 54.9891, lng: -8.2134, zoom: 14 },
-  'Lough Deele':  { lat: 54.8923, lng: -7.8012, zoom: 14 },
+  'Lough Craghy': { lat: 54.952516, lng: -8.321976, zoom: 14 },
+  'Lough Anure':  { lat: 54.993611, lng: -8.280500, zoom: 14 },
+  'Lough Deele':  { lat: 54.899537, lng: -7.883061, zoom: 14 },
 }
 
 const PIN_COLORS = {
@@ -249,7 +249,7 @@ export default function SectorMap({ sector, profile, flies, readOnly = false }) 
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>{selectedPin.profiles?.name} · {selectedPin.profiles?.team}</div>
           {selectedPin.method && <div style={{ fontSize: 13, color: 'var(--text)' }}>Method: {selectedPin.method}</div>}
           {selectedPin.notes && <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 4 }}>{selectedPin.notes}</div>}
-          {selectedPin.user_id === profile?.id && (
+          {(selectedPin.user_id === profile?.id || ['coach', 'manager'].includes(profile?.role)) && (
             <button onClick={() => deletePin(selectedPin.id)} style={{ marginTop: 8, fontSize: 12, color: '#F09595', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               Remove pin
             </button>
