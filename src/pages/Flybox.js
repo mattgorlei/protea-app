@@ -41,15 +41,21 @@ export default function Flybox({ profile, showToast }) {
     setEditSubmitting(true)
     const ext = editPhoto.name.split('.').pop()
     const path = `${Date.now()}.${ext}`
+    console.log('Uploading photo to path:', path)
     const { error: uploadError } = await supabase.storage.from('fly-photos').upload(path, editPhoto)
+    console.log('Upload error:', uploadError)
     if (!uploadError) {
       const { data: urlData } = supabase.storage.from('fly-photos').getPublicUrl(path)
       const photoUrl = urlData.publicUrl + '?t=' + Date.now()
-      await supabase.from('flies').update({ photo_url: photoUrl }).eq('id', flyId)
+      console.log('New photo URL:', photoUrl)
+      const { error: updateError } = await supabase.from('flies').update({ photo_url: photoUrl }).eq('id', flyId)
+      console.log('DB update error:', updateError)
       await fetchFlies()
+      const updatedFly = (await supabase.from('flies').select('*').eq('id', flyId).single()).data
+      console.log('Fly after update:', updatedFly)
       showToast('Photo updated')
     } else {
-      showToast('Upload failed — try again')
+      showToast('Upload failed: ' + uploadError.message)
     }
     setEditingFlyId(null)
     setEditPhoto(null)
