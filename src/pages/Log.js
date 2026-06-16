@@ -178,9 +178,9 @@ export default function Log({ profile, showToast }) {
       entry_mode: mode,
       water_type: mode === 'competition' ? (LOUGH_SECTORS.includes(sector) ? 'lough' : 'river') : waterType,
       entry_type: mode === 'competition' ? 'competition' : entryType,
-      sector: sectors[0],
-      practice_water_name: practiceWaterName || null,
-      applicable_sectors: sectors,
+      sector: selectedWater ? resolvedSector : (sectors[0] || SECTORS[0]),
+      practice_water_name: selectedWater ? selectedWater.name : (practiceWaterName || null),
+      applicable_sectors: selectedWater ? resolvedSectors : (sectors.length ? sectors : [SECTORS[0]]),
       conditions: conditions === 'Other' ? conditionsOther : conditions,
       session_time: sessionTime,
     }
