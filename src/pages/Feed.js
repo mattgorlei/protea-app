@@ -275,7 +275,9 @@ export default function Feed({ profile }) {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (sector !== 'All') query = query.eq('sector', sector)
+    if (sector !== 'All') {
+      query = query.or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`)
+    }
 
     const { data } = await query
     setEntries(data || [])

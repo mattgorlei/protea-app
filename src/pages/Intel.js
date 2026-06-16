@@ -16,7 +16,7 @@ export default function Intel({ profile }) {
     setLoading(true)
 
     const [entriesRes, planRes, fliesRes] = await Promise.all([
-      supabase.from('entries').select('*, profiles(name, team)').eq('sector', sector).order('created_at', { ascending: false }).limit(30),
+      supabase.from('entries').select('*, profiles(name, team)').or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`).order('created_at', { ascending: false }).limit(30),
       supabase.from('sector_plans').select('*').eq('sector', sector).single(),
       supabase.from('flies').select('*'),
     ])
