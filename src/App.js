@@ -5,6 +5,7 @@ import Feed from './pages/Feed'
 import Log from './pages/Log'
 import Flybox from './pages/Flybox'
 import Intel from './pages/Intel'
+import PracticeWaters from './pages/PracticeWaters'
 
 function NavIcon({ id }) {
   const icons = {
@@ -13,6 +14,7 @@ function NavIcon({ id }) {
     flybox: <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4"/><line x1="12" y1="8" x2="16" y2="4"/></svg>,
     intel: <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
     comp: <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
+    settings: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
   }
   return icons[id] || null
 }
@@ -53,6 +55,7 @@ export default function App() {
     { id: 'flybox', label: 'Flybox' },
     { id: 'intel', label: 'Intel' },
     { id: 'comp', label: 'Comp' },
+    { id: 'settings', label: 'Settings' },
   ]
 
   const teamColor = profile.team === 'U24'
@@ -83,6 +86,7 @@ export default function App() {
         {tab === 'log' && <Log profile={profile} showToast={showToast} />}
         {tab === 'flybox' && <Flybox profile={profile} showToast={showToast} />}
         {tab === 'intel' && <Intel profile={profile} />}
+        {tab === 'settings' && <PracticeWaters profile={profile} showToast={showToast} />}
         {tab === 'comp' && (
           <div className="screen active">
             <div className="section-label">Competition mode</div>

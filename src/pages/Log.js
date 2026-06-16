@@ -108,6 +108,21 @@ export default function Log({ profile, showToast }) {
   const [compSuggestion, setCompSuggestion] = useState('')
 
   const [flies, setFlies] = useState([])
+  const [practiceWaters, setPracticeWaters] = useState([])
+  const [selectedWaterId, setSelectedWaterId] = useState('')
+
+  // Derived: selected practice water object
+  const selectedWater = practiceWaters.find(w => w.id === selectedWaterId)
+  // Auto-resolve comp sectors from practice water mapping
+  const resolvedSectors = selectedWater?.comp_sectors || sectors
+  const resolvedSector = resolvedSectors.length >= 2 &&
+    resolvedSectors.every(s => ['Lough Craghy','Lough Anure','Lough Deele'].includes(s))
+    ? 'All Loughs'
+    : resolvedSectors[0] || SECTORS[0]
+
+  useEffect(() => {
+    supabase.from('practice_waters').select('*').order('name').then(({ data }) => setPracticeWaters(data || []))
+  }, [])
 
   async function fetchFlies() {
     const { data } = await supabase.from('flies').select('*').order('name')
@@ -144,7 +159,7 @@ export default function Log({ profile, showToast }) {
   }
 
   function reset() {
-    setConditions(''); setConditionsOther(''); setPracticeWaterName(''); setSectors([])
+    setConditions(''); setConditionsOther(''); setPracticeWaterName(''); setSectors([]); setSelectedWaterId('')
     const now = new Date(); setSessionTime(now.toTimeString().slice(0, 5))
     setLineUsed(''); setMethod(''); setFlyId(''); setRetrieveSpeed('')
     setRetrieveActivations([]); setAdditionalNotes(''); setRiverMethod('')
@@ -242,21 +257,35 @@ export default function Log({ profile, showToast }) {
         </>
       )}
 
-      <label>Applicable comp sector{!isComp ? 's' : ''}</label>
       {!isComp ? (
-        <ChipGroup options={SECTORS} selected={sectors} onChange={handleSectorChange} multi={true} />
-      ) : (
-        <select value={sectors[0] || ''} onChange={e => setSectors([e.target.value])}>
-          {SECTORS.map(s => <option key={s}>{s}</option>)}
-        </select>
-      )}
-
-      {!isComp && (
         <>
-          <label>Practice water name (optional)</label>
-          <input type="text" placeholder="e.g. Lough Fern" value={practiceWaterName} onChange={e => setPracticeWaterName(e.target.value)} />
+          <label>Practice water</label>
+          <select value={selectedWaterId} onChange={e => setSelectedWaterId(e.target.value)}>
+            <option value="">Select practice water...</option>
+            {practiceWaters.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+          </select>
+          {selectedWater && (
+            <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(255,179,2,0.08)', borderRadius: 'var(--radius-sm)', border: '0.5px solid rgba(255,179,2,0.25)' }}>
+              <div style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Feeds into</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {resolvedSectors.map(s => <span key={s} className="feed-tag" style={{ color: 'var(--gold)', borderColor: 'rgba(255,179,2,0.3)' }}>{s}</span>)}
+              </div>
+            </div>
+          )}
+          {practiceWaters.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>No practice waters set up yet — ask a coach to add them in Settings.</div>
+          )}
+        </>
+      ) : (
+        <>
+          <label>Competition sector</label>
+          <select value={sectors[0] || ''} onChange={e => setSectors([e.target.value])}>
+            {SECTORS.map(s => <option key={s}>{s}</option>)}
+          </select>
         </>
       )}
+
+
 
       <label>Time on water</label>
       <input type="time" value={sessionTime} onChange={e => setSessionTime(e.target.value)} />
