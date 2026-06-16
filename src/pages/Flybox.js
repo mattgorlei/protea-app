@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, SECTORS } from '../lib/supabase'
 
-function FlyCard({ fly, catchCount, showToast }) {
+function FlyCard({ fly, catchCount, showToast, onUpdated }) {
   const [editingPhoto, setEditingPhoto] = useState(false)
   const [editPhoto, setEditPhoto] = useState(null)
   const [editPreview, setEditPreview] = useState(null)
@@ -20,7 +20,7 @@ function FlyCard({ fly, catchCount, showToast }) {
       const photoUrl = urlData.publicUrl + '?t=' + Date.now()
       const { error: dbError } = await supabase.from('flies').update({ photo_url: photoUrl }).eq('id', fly.id)
       console.log('DB update result:', dbError || 'success')
-      if (!dbError) showToast('Photo updated')
+      if (!dbError) { showToast('Photo updated'); onUpdated && onUpdated() }
       else showToast('DB error: ' + dbError.message)
     } else {
       showToast('Upload failed: ' + uploadError.message)
@@ -286,7 +286,7 @@ export default function Flybox({ profile, showToast }) {
           </div>
           <div className="fly-grid" style={{ marginBottom: 16 }}>
         {grpFlies.map(fly => (
-          <FlyCard key={fly.id} fly={fly} catchCount={catchCounts[fly.id]} showToast={showToast} />
+          <FlyCard key={fly.id} fly={fly} catchCount={catchCounts[fly.id]} showToast={showToast} onUpdated={fetchFlies} />
           ))}
           </div>
         </div>
