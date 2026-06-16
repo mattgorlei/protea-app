@@ -267,6 +267,7 @@ export default function Feed({ profile }) {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [sector, setSector] = useState('All')
+  const [practiceWaters, setPracticeWaters] = useState([])
 
   const fetchEntries = useCallback(async () => {
     let query = supabase
@@ -276,7 +277,11 @@ export default function Feed({ profile }) {
       .limit(50)
 
     if (sector !== 'All') {
-      query = query.or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`)
+      if (sector.startsWith('pw:')) {
+        query = query.eq('practice_water_name', sector.replace('pw:', ''))
+      } else {
+        query = query.or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`)
+      }
     }
 
     const { data } = await query
@@ -286,6 +291,7 @@ export default function Feed({ profile }) {
 
   useEffect(() => {
     fetchEntries()
+    supabase.from('practice_waters').select('*').order('name').then(({ data }) => setPracticeWaters(data || []))
 
     const channel = supabase
       .channel('entries-feed')
@@ -306,12 +312,18 @@ export default function Feed({ profile }) {
     <div className="screen active" id="screen-feed">
       <div className="sector-scroll">
         {['All', 'All Loughs', ...SECTORS].map(s => (
-          <div
-            key={s}
-            className={`sector-pill ${sector === s ? 'active' : ''}`}
-            onClick={() => setSector(s)}
-          >
+          <div key={s} className={`sector-pill ${sector === s ? 'active' : ''}`} onClick={() => setSector(s)}>
             {s === 'All' ? 'All sectors' : s}
+          </div>
+        ))}
+        {practiceWaters.map(pw => (
+          <div
+            key={pw.id}
+            className={`sector-pill ${sector === 'pw:' + pw.name ? 'active' : ''}`}
+            style={sector !== 'pw:' + pw.name ? { borderColor: 'rgba(255,179,2,0.4)', color: 'var(--gold)' } : { background: 'var(--gold)', color: 'var(--gold-dark)', borderColor: 'var(--gold)' }}
+            onClick={() => setSector('pw:' + pw.name)}
+          >
+            {pw.name}
           </div>
         ))}
       </div>

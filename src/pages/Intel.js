@@ -4,6 +4,7 @@ import { supabase, SECTORS } from '../lib/supabase'
 export default function Intel({ profile }) {
   const [sector, setSector] = useState(SECTORS[0])
   const [entries, setEntries] = useState([])
+  const [practiceWaters, setPracticeWaters] = useState([])
   const [flies, setFlies] = useState([])
   const [plan, setPlan] = useState(null)
   const [editing, setEditing] = useState(false)
@@ -15,14 +16,18 @@ export default function Intel({ profile }) {
   const fetchData = useCallback(async () => {
     setLoading(true)
 
-    const [entriesRes, planRes, fliesRes] = await Promise.all([
-      supabase.from('entries').select('*, profiles(name, team)').or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`).order('created_at', { ascending: false }).limit(30),
-      supabase.from('sector_plans').select('*').eq('sector', sector).single(),
+    const [entriesRes, planRes, fliesRes, pwRes] = await Promise.all([
+      sector.startsWith('pw:')
+        ? supabase.from('entries').select('*, profiles(name, team)').eq('practice_water_name', sector.replace('pw:', '')).order('created_at', { ascending: false }).limit(30)
+        : supabase.from('entries').select('*, profiles(name, team)').or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`).order('created_at', { ascending: false }).limit(30),
+      sector.startsWith('pw:') ? Promise.resolve({ data: null }) : supabase.from('sector_plans').select('*').eq('sector', sector).single(),
       supabase.from('flies').select('*'),
+      supabase.from('practice_waters').select('*').order('name'),
     ])
 
     setEntries(entriesRes.data || [])
     setPlan(planRes.data)
+    setPracticeWaters(pwRes.data || [])
     setPlanText(planRes.data?.plan_text || '')
     setFlies(fliesRes.data || [])
     setLoading(false)
@@ -42,8 +47,10 @@ export default function Intel({ profile }) {
   }
 
   // Compute stats
-  const fishEntries = entries.filter(e => e.entry_type === 'fish_feedback' || e.entry_type === 'competition')
-  const totalFish = fishEntries.reduce((sum, e) => sum + (e.comp_fish_count || (e.fly_id ? 1 : 0)), 0)
+  const compFishEntries = entries.filter(e => e.entry_type === 'competition')
+  const practiceFishEntries = entries.filter(e => e.entry_type === 'fish_feedback' && e.entry_mode === 'practice')
+  const totalFish = compFishEntries.reduce((sum, e) => sum + (e.comp_fish_count || 0), 0)
+  const practiceFishCount = practiceFishEntries.filter(e => e.fly_id).length
   const eodEntries = entries.filter(e => e.entry_type === 'end_of_day')
   const avgConfidence = eodEntries.length
     ? (eodEntries.reduce((s, e) => s + (e.eod_confidence || 0), 0) / eodEntries.length).toFixed(1)
@@ -85,6 +92,16 @@ export default function Intel({ profile }) {
         {['All Loughs', ...SECTORS].map(s => (
           <div key={s} className={`sector-pill ${sector === s ? 'active' : ''}`} onClick={() => setSector(s)}>
             {s}
+          </div>
+        ))}
+        {practiceWaters.map(pw => (
+          <div
+            key={pw.id}
+            className={`sector-pill ${sector === 'pw:' + pw.name ? 'active' : ''}`}
+            style={sector !== 'pw:' + pw.name ? { borderColor: 'rgba(255,179,2,0.4)', color: 'var(--gold)' } : { background: 'var(--gold)', color: 'var(--gold-dark)', borderColor: 'var(--gold)' }}
+            onClick={() => setSector('pw:' + pw.name)}
+          >
+            {pw.name}
           </div>
         ))}
       </div>
