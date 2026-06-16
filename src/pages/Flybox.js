@@ -44,9 +44,12 @@ export default function Flybox({ profile, showToast }) {
     const { error: uploadError } = await supabase.storage.from('fly-photos').upload(path, editPhoto)
     if (!uploadError) {
       const { data: urlData } = supabase.storage.from('fly-photos').getPublicUrl(path)
-      await supabase.from('flies').update({ photo_url: urlData.publicUrl }).eq('id', flyId)
+      const photoUrl = urlData.publicUrl + '?t=' + Date.now()
+      await supabase.from('flies').update({ photo_url: photoUrl }).eq('id', flyId)
       await fetchFlies()
       showToast('Photo updated')
+    } else {
+      showToast('Upload failed — try again')
     }
     setEditingFlyId(null)
     setEditPhoto(null)
@@ -61,6 +64,7 @@ export default function Flybox({ profile, showToast }) {
     const channel = supabase
       .channel('flies-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'flies' }, fetchFlies)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'flies' }, fetchFlies)
       .subscribe()
 
     return () => supabase.removeChannel(channel)
