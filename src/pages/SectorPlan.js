@@ -218,6 +218,54 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
     return `${Math.floor(diff / 86400)}d ago`
   }
 
+  function exportPDF() {
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    const sections = PLAN_SECTIONS.map(s => {
+      const val = typeof plan?.[s.key] === 'string' && plan[s.key] ? plan[s.key] : null
+      if (!val) return ''
+      return `<div class="section">
+        <div class="section-title">${s.label}</div>
+        <div class="section-body">${val.split('\n').join('<br/>').split('•').join('<span class="bullet">•</span>')}</div>
+      </div>`
+    }).filter(Boolean).join('')
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>${sector} — Sector Plan</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; padding: 32px; max-width: 800px; margin: 0 auto; }
+    .header { border-bottom: 3px solid #1B3838; padding-bottom: 16px; margin-bottom: 24px; }
+    .team { font-size: 11px; font-weight: 700; color: #1B3838; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sector-name { font-size: 28px; font-weight: 800; color: #1B3838; letter-spacing: -0.5px; }
+    .meta { font-size: 13px; color: #666; margin-top: 4px; }
+    .section { margin-bottom: 20px; page-break-inside: avoid; }
+    .section-title { font-size: 11px; font-weight: 700; color: #FFB302; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; border-left: 3px solid #FFB302; padding-left: 8px; }
+    .section-body { font-size: 14px; line-height: 1.7; color: #222; padding-left: 11px; }
+    .bullet { color: #1B3838; font-weight: 700; margin-right: 4px; }
+    .coach-notes { background: #fffbf0; border: 1.5px solid #FFB302; border-radius: 8px; padding: 14px; margin-bottom: 20px; }
+    .coach-notes .section-title { border-left: none; padding-left: 0; }
+    @media print { body { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="team">Protea SA Youth · World Champs Donegal 2026</div>
+    <div class="sector-name">${sector}</div>
+    <div class="meta">Sector Plan · ${date}</div>
+  </div>
+  ${sections}
+</body>
+</html>`
+
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => win.print(), 500)
+  }
+
   if (loading) return <div className="spinner" />
 
   return (
@@ -229,16 +277,25 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
             {lastUpdated ? `Updated ${timeAgo(lastUpdated)}` : 'No plan yet'}
           </div>
         </div>
-        {isCoach && (
+        <div style={{ display: 'flex', gap: 8 }}>
           <button
-            className="btn btn-gold"
-            style={{ marginTop: 0, width: 'auto', padding: '8px 16px', fontSize: 13 }}
-            onClick={generatePlan}
-            disabled={generating}
+            className="btn btn-secondary"
+            style={{ marginTop: 0, width: 'auto', padding: '8px 14px', fontSize: 13 }}
+            onClick={exportPDF}
           >
-            {generating ? '✨ Generating...' : '✨ Generate from intel'}
+            📄 Export PDF
           </button>
-        )}
+          {isCoach && (
+            <button
+              className="btn btn-gold"
+              style={{ marginTop: 0, width: 'auto', padding: '8px 16px', fontSize: 13 }}
+              onClick={generatePlan}
+              disabled={generating}
+            >
+              {generating ? '✨ Generating...' : '✨ Generate from intel'}
+            </button>
+          )}
+        </div>
       </div>
 
       {generating && (
