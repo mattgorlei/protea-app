@@ -194,21 +194,10 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
       })
 
       const data = await response.json()
-      console.log('API response ok:', response.ok)
-      console.log('Raw text length:', data.text?.length)
-      console.log('Raw text preview:', data.text?.substring(0, 300))
       if (!response.ok) throw new Error(data.error || 'Generation failed')
       const text = data.text || ''
       const clean = text.replace(/```json|```/g, '').trim()
-      let generated
-      try {
-        generated = JSON.parse(clean)
-        console.log('Parsed sections:', Object.keys(generated))
-      } catch(parseErr) {
-        console.error('JSON parse error:', parseErr)
-        console.log('Clean text:', clean.substring(0, 500))
-        throw new Error('Could not parse AI response as JSON')
-      }
+      const generated = JSON.parse(clean)
 
       // Export as PDF — don't touch the sector plan
       exportIntelPDF(generated, reportWindow)
@@ -221,7 +210,7 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
     setGenerating(false)
   }
 
-  function exportIntelPDF(intel, win) {
+  function exportIntelPDF(intel, reportWin) {
     const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     const sections = PLAN_SECTIONS.map(s => {
       const val = typeof intel?.[s.key] === 'string' && intel[s.key] ? intel[s.key] : null
@@ -265,6 +254,8 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
+    const win = window.open('', '_blank')
+    if (!win) { alert('Please allow popups to export PDF.'); return }
     win.document.open()
     win.document.write(html)
     win.document.close()
