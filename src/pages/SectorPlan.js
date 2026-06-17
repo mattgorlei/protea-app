@@ -194,10 +194,21 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
       })
 
       const data = await response.json()
+      console.log('API response ok:', response.ok)
+      console.log('Raw text length:', data.text?.length)
+      console.log('Raw text preview:', data.text?.substring(0, 300))
       if (!response.ok) throw new Error(data.error || 'Generation failed')
       const text = data.text || ''
       const clean = text.replace(/```json|```/g, '').trim()
-      const generated = JSON.parse(clean)
+      let generated
+      try {
+        generated = JSON.parse(clean)
+        console.log('Parsed sections:', Object.keys(generated))
+      } catch(parseErr) {
+        console.error('JSON parse error:', parseErr)
+        console.log('Clean text:', clean.substring(0, 500))
+        throw new Error('Could not parse AI response as JSON')
+      }
 
       // Export as PDF — don't touch the sector plan
       exportIntelPDF(generated, reportWindow)
