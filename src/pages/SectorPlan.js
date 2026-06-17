@@ -185,29 +185,64 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
       const clean = text.replace(/```json|```/g, '').trim()
       const generated = JSON.parse(clean)
 
-      // Merge: coach-edited sections take priority, AI fills the rest
-      const coachEditedKeys = new Set(plan?._coach_edited || [])
-      const merged = { ...(plan || {}), ...generated }
-      // Restore coach-edited sections
-      coachEditedKeys.forEach(key => {
-        if (plan?.[key]) merged[key] = plan[key]
-      })
-      merged._coach_edited = [...coachEditedKeys]
+      // Export as PDF — don't touch the sector plan
+      exportIntelPDF(generated)
 
-      await supabase.from('sector_plans_v2').upsert({
-        sector,
-        content: merged,
-        updated_by: profile.id,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'sector' })
-
-      setPlan(merged)
-      setLastUpdated(new Date().toISOString())
     } catch (err) {
       console.error('Generate error:', err)
     }
 
     setGenerating(false)
+  }
+
+  function exportIntelPDF(intel) {
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    const sections = PLAN_SECTIONS.map(s => {
+      const val = typeof intel?.[s.key] === 'string' && intel[s.key] ? intel[s.key] : null
+      if (!val) return ''
+      return `<div class="section">
+        <div class="section-title">${s.label}</div>
+        <div class="section-body">${val.split('\n').join('<br/>').split('•').join('<span class="bullet">•</span>')}</div>
+      </div>`
+    }).filter(Boolean).join('')
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>${sector} — Intel Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; padding: 32px; max-width: 800px; margin: 0 auto; }
+    .header { border-bottom: 3px solid #1B3838; padding-bottom: 16px; margin-bottom: 24px; }
+    .team { font-size: 11px; font-weight: 700; color: #1B3838; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sector-name { font-size: 28px; font-weight: 800; color: #1B3838; letter-spacing: -0.5px; }
+    .meta { font-size: 13px; color: #666; margin-top: 4px; }
+    .ai-badge { display: inline-block; font-size: 11px; font-weight: 700; color: #7a5500; background: #fff4d6; border: 1px solid #FFB302; border-radius: 99px; padding: 2px 10px; margin-top: 8px; }
+    .disclaimer { font-size: 12px; color: #888; margin-top: 8px; line-height: 1.5; font-style: italic; }
+    .section { margin-bottom: 20px; page-break-inside: avoid; }
+    .section-title { font-size: 11px; font-weight: 700; color: #FFB302; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; border-left: 3px solid #FFB302; padding-left: 8px; }
+    .section-body { font-size: 14px; line-height: 1.7; color: #222; padding-left: 11px; }
+    .bullet { color: #1B3838; font-weight: 700; margin-right: 4px; }
+    @media print { body { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="team">Protea SA Youth · World Champs Donegal 2026</div>
+    <div class="sector-name">${sector}</div>
+    <div class="meta">AI Intel Report · ${date}</div>
+    <div class="ai-badge">✨ AI Generated from team feed</div>
+    <div class="disclaimer">Based only on logged team intel. Use as input to build your sector plan — coach judgement and team strategy take priority.</div>
+  </div>
+  ${sections}
+</body>
+</html>`
+
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => win.print(), 500)
   }
 
   function timeAgo(ts) {
@@ -292,7 +327,7 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
               onClick={generatePlan}
               disabled={generating}
             >
-              {generating ? '✨ Generating...' : '✨ Generate from intel'}
+              {generating ? '✨ Generating report...' : '✨ AI Intel Report'}
             </button>
           )}
         </div>
