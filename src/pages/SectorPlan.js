@@ -251,7 +251,7 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
         <PlanSection
           key={section.key}
           section={section}
-          value={plan?.[section.key]}
+          value={typeof plan?.[section.key] === 'string' ? plan[section.key] : ''}
           isCoach={isCoach}
           isCoachEdited={(plan?._coach_edited || []).includes(section.key)}
           onSave={saveSection}
