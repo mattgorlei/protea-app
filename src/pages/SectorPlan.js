@@ -312,10 +312,10 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    win.document.open()
-    win.document.write(html)
-    win.document.close()
-    setTimeout(() => win.print(), 800)
+    reportWin.document.open()
+    reportWin.document.write(html)
+    reportWin.document.close()
+    setTimeout(() => reportWin.print(), 800)
   }
 
   if (loading) return <div className="spinner" />
