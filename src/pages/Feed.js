@@ -115,7 +115,7 @@ function FeedEntry({ entry, profile, onDelete }) {
   const fetchComments = useCallback(async () => {
     const { data } = await supabase
       .from('comments')
-      .select('*, profiles(name, initials, role, team), flies(name, size)')
+      .select('*, profiles(name, initials, role, team)')
       .eq('entry_id', entry.id)
       .order('created_at', { ascending: true })
     setComments(data || [])

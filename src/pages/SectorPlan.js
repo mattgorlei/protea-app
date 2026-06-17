@@ -172,6 +172,15 @@ ${coachEditedSections}
 Generate the remaining sections based on the feed data. Return ONLY a JSON object with these exact keys: water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, coach_notes.
     `
 
+    // Open window immediately (before async) to avoid popup blocker
+    const reportWindow = window.open('', '_blank')
+    if (!reportWindow) {
+      alert('Please allow popups for this site to view the AI report.')
+      setGenerating(false)
+      return
+    }
+    reportWindow.document.write('<html><body style="font-family:sans-serif;padding:32px;color:#333;"><h2>Generating AI Intel Report...</h2><p>Please wait about 15 seconds.</p></body></html>')
+
     try {
       const response = await fetch('/api/generate-plan', {
         method: 'POST',
@@ -186,16 +195,17 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
       const generated = JSON.parse(clean)
 
       // Export as PDF — don't touch the sector plan
-      exportIntelPDF(generated)
+      exportIntelPDF(generated, reportWindow)
 
     } catch (err) {
       console.error('Generate error:', err)
+      reportWindow.close()
     }
 
     setGenerating(false)
   }
 
-  function exportIntelPDF(intel) {
+  function exportIntelPDF(intel, win) {
     const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     const sections = PLAN_SECTIONS.map(s => {
       const val = typeof intel?.[s.key] === 'string' && intel[s.key] ? intel[s.key] : null
@@ -239,7 +249,6 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    const win = window.open('', '_blank')
     win.document.write(html)
     win.document.close()
     setTimeout(() => win.print(), 500)
@@ -295,7 +304,6 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    const win = window.open('', '_blank')
     win.document.write(html)
     win.document.close()
     setTimeout(() => win.print(), 500)
