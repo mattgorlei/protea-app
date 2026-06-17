@@ -125,9 +125,7 @@ export default function SectorPlan({ sector, profile }) {
 
     console.log('Entries fetched for', sector, ':', entries?.length)
     if (!entries || entries.length === 0) {
-      reportWindow.document.open()
-      reportWindow.document.write('<html><body style="font-family:sans-serif;padding:32px;"><h2>No intel logged yet for ' + sector + '</h2><p>Log some practice sessions first, then generate the report.</p></body></html>')
-      reportWindow.document.close()
+      setReportHtml('<html><body style="font-family:sans-serif;padding:32px;color:#333;"><h2>No intel logged yet for ' + sector + '</h2><p>Log some practice sessions first, then generate the report.</p></body></html>')
       setGenerating(false)
       return
     }
