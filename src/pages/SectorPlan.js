@@ -232,7 +232,7 @@ water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, c
     .section-title { font-size: 11px; font-weight: 700; color: #FFB302; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; border-left: 3px solid #FFB302; padding-left: 8px; }
     .section-body { font-size: 14px; line-height: 1.7; color: #222; padding-left: 11px; }
     .bullet { color: #1B3838; font-weight: 700; margin-right: 4px; }
-    @media print { body { padding: 16px; } }
+    @media print { body { padding: 16px; } .no-print { display: none !important; } }
   </style>
 </head>
 <body>
@@ -287,7 +287,7 @@ water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, c
     .bullet { color: #1B3838; font-weight: 700; margin-right: 4px; }
     .coach-notes { background: #fffbf0; border: 1.5px solid #FFB302; border-radius: 8px; padding: 14px; margin-bottom: 20px; }
     .coach-notes .section-title { border-left: none; padding-left: 0; }
-    @media print { body { padding: 16px; } }
+    @media print { body { padding: 16px; } .no-print { display: none !important; } }
   </style>
 </head>
 <body>
@@ -303,20 +303,30 @@ water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, c
     setReportHtml(html)
   }
 
-  if (reportHtml) return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#fff', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#1B3838', flexShrink: 0 }}>
-        <button onClick={() => setReportHtml(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', padding: '4px 8px' }}>← Back</button>
-        <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#FFB302' }}>Report</div>
-        <button onClick={() => window.print()} style={{ background: '#FFB302', border: 'none', color: '#7a5500', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}>Print / Save PDF</button>
+  if (reportHtml) {
+    const printReport = () => {
+      const iframe = document.getElementById('report-iframe')
+      if (iframe) {
+        iframe.contentWindow.focus()
+        iframe.contentWindow.print()
+      }
+    }
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#fff', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
+        <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#1B3838', flexShrink: 0 }}>
+          <button onClick={() => setReportHtml(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', padding: '4px 8px' }}>← Back</button>
+          <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#FFB302' }}>Report</div>
+          <button onClick={printReport} style={{ background: '#FFB302', border: 'none', color: '#7a5500', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}>Print / Save PDF</button>
+        </div>
+        <iframe
+          id="report-iframe"
+          srcDoc={reportHtml}
+          style={{ flex: 1, border: 'none', width: '100%' }}
+          title="Report"
+        />
       </div>
-      <iframe
-        srcDoc={reportHtml}
-        style={{ flex: 1, border: 'none', width: '100%' }}
-        title="Report"
-      />
-    </div>
-  )
+    )
+  }
 
   if (loading) return <div className="spinner" />
 
