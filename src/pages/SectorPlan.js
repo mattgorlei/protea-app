@@ -82,6 +82,7 @@ export default function SectorPlan({ sector, profile }) {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [reportHtml, setReportHtml] = useState(null)
 
   const isCoach = ['coach', 'manager'].includes(profile?.role)
 
@@ -177,15 +178,6 @@ ${coachEditedSections}
 Generate the remaining sections based on the feed data. Return ONLY a JSON object with these exact keys: water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, coach_notes.
     `
 
-    // Open window immediately (before async) to avoid popup blocker
-    const reportWindow = window.open('', '_blank')
-    if (!reportWindow) {
-      alert('Please allow popups for this site to view the AI report.')
-      setGenerating(false)
-      return
-    }
-    reportWindow.document.write('<html><body style="font-family:sans-serif;padding:32px;color:#333;"><h2>Generating AI Intel Report...</h2><p>Please wait about 15 seconds.</p></body></html>')
-
     try {
       const response = await fetch('/api/generate-plan', {
         method: 'POST',
@@ -200,17 +192,16 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
       const generated = JSON.parse(clean)
 
       // Export as PDF — don't touch the sector plan
-      exportIntelPDF(generated, reportWindow)
+      exportIntelPDF(generated)
 
     } catch (err) {
       console.error('Generate error:', err)
-      reportWindow.close()
     }
 
     setGenerating(false)
   }
 
-  function exportIntelPDF(intel, reportWin) {
+  function exportIntelPDF(intel) {
     const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     const sections = PLAN_SECTIONS.map(s => {
       const val = typeof intel?.[s.key] === 'string' && intel[s.key] ? intel[s.key] : null
@@ -310,13 +301,23 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    const newWin = window.open('', '_blank')
-    if (!newWin) { alert('Please allow popups for this site.'); return }
-    newWin.document.write(html)
-    newWin.document.close()
-    newWin.focus()
-    setTimeout(() => { try { newWin.print() } catch(e) {} }, 1000)
+    setReportHtml(html)
   }
+
+  if (reportHtml) return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#fff', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#1B3838', flexShrink: 0 }}>
+        <button onClick={() => setReportHtml(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', padding: '4px 8px' }}>← Back</button>
+        <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#FFB302' }}>Report</div>
+        <button onClick={() => window.print()} style={{ background: '#FFB302', border: 'none', color: '#7a5500', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}>Print / Save PDF</button>
+      </div>
+      <iframe
+        srcDoc={reportHtml}
+        style={{ flex: 1, border: 'none', width: '100%' }}
+        title="Report"
+      />
+    </div>
+  )
 
   if (loading) return <div className="spinner" />
 
