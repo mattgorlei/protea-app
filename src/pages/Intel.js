@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, SECTORS, LOUGH_SECTORS } from '../lib/supabase'
 import SectorMap from '../components/SectorMap'
+import SectorPlan from './SectorPlan'
 
 export default function Intel({ profile }) {
   const [sector, setSector] = useState(SECTORS[0])
+  const [view, setView] = useState('intel') // 'intel' | 'plan'
   const [entries, setEntries] = useState([])
   const [practiceWaters, setPracticeWaters] = useState([])
   const [flies, setFlies] = useState([])
@@ -13,6 +15,8 @@ export default function Intel({ profile }) {
   const [loading, setLoading] = useState(true)
 
   const isCoach = ['coach', 'manager'].includes(profile?.role)
+
+  useEffect(() => { setView('intel') }, [sector])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -107,9 +111,17 @@ export default function Intel({ profile }) {
         ))}
       </div>
 
-      {loading && <div className="spinner" />}
+      <div style={{ display: 'flex', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', padding: 3, gap: 2, marginBottom: 16 }}>
+        <button className={`seg-btn ${view === 'intel' ? 'active' : ''}`} onClick={() => setView('intel')}>📊 Intel</button>
+        <button className={`seg-btn ${view === 'plan' ? 'active' : ''}`} onClick={() => setView('plan')}>📋 Sector Plan</button>
+      </div>
 
-      {!loading && (
+      {view === 'plan' && <SectorPlan sector={sector} profile={profile} />}
+
+      {view === 'intel' && loading && <div className="spinner" />}
+      {view === 'intel' && !loading && false && <div className="spinner" />}
+
+      {view === 'intel' && !loading && (
         <>
           <div className="stat-grid">
             <div className="stat-card"><div className="stat-label">Entries</div><div className="stat-val">{entries.length}</div></div>
