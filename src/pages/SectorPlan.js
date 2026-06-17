@@ -310,9 +310,12 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    const blob = new Blob([html], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    window.open(url, '_blank')
+    const newWin = window.open('', '_blank')
+    if (!newWin) { alert('Please allow popups for this site.'); return }
+    newWin.document.write(html)
+    newWin.document.close()
+    newWin.focus()
+    setTimeout(() => { try { newWin.print() } catch(e) {} }, 1000)
   }
 
   if (loading) return <div className="spinner" />
