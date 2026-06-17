@@ -254,8 +254,6 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    const win = window.open('', '_blank')
-    if (!win) { alert('Please allow popups to export PDF.'); return }
     win.document.open()
     win.document.write(html)
     win.document.close()
@@ -312,10 +310,12 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    reportWin.document.open()
-    reportWin.document.write(html)
-    reportWin.document.close()
-    setTimeout(() => reportWin.print(), 800)
+    const pdfWin = window.open('', '_blank')
+    if (!pdfWin) { alert('Please allow popups to export PDF.'); return }
+    pdfWin.document.open()
+    pdfWin.document.write(html)
+    pdfWin.document.close()
+    setTimeout(() => pdfWin.print(), 800)
   }
 
   if (loading) return <div className="spinner" />
