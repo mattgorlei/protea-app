@@ -163,17 +163,21 @@ ${eodEntries.map(e => `- ${e.profiles?.name} (${e.profiles?.team}): Confidence $
 
 ${compEntries.length > 0 ? `COMPETITION FEEDBACK:\n${compEntries.map(e => `- ${e.profiles?.name}: ${e.comp_fish_count || 0} fish, placing: ${e.comp_placing || 'N/A'}, best method: ${e.comp_most_effective_method || 'N/A'}. Technique: ${e.comp_technique_description || 'N/A'}. Suggestion to next: ${e.comp_suggestion_to_next || 'N/A'}`).join('\n')}` : ''}
 
-CRITICAL RULES:
-- Use ONLY the data provided above. Do NOT add general fly fishing knowledge, assumptions, or information not present in the feed data.
-- If there is not enough data for a section, say "Insufficient intel yet — keep logging" rather than making things up.
-- Format each section as SHORT bullet points (• ), not paragraphs. Max 6 bullets per section.
-- Be specific — use exact fly names, line names, retrieve names and angler observations from the data above.
-- The team fishes loch-style wetflies with competition nymph triggers (UV, hotspots, soft hackle, knotted legs). Only reference this if the data supports it.
+RULES:
+- You MUST return ALL 8 sections every time. Never skip a section.
+- Use ONLY the feed data provided above. Do NOT use general fly fishing knowledge.
+- If data is thin for a section, write what you can from the data and note "More intel needed" at the end.
+- Format as SHORT bullet points (• ). Max 6 bullets per section.
+- Be specific — use exact fly names, line names, retrieve names from the data.
+- The team fishes loch-style wetflies. Only reference this if the data supports it.
 
-The following sections have already been edited by the coach — return them EXACTLY as provided, do not change them:
+For these sections the coach has already provided content — use their exact text as the value, do not change it:
 ${coachEditedSections}
 
-Generate the remaining sections based on the feed data. Return ONLY a JSON object with these exact keys: water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, coach_notes.
+For all other sections, generate from the feed data above.
+
+Return ONLY a valid JSON object with exactly these 8 keys, no other text, no markdown fences:
+water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, coach_notes
     `
 
     try {
