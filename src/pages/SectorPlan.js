@@ -122,10 +122,15 @@ export default function SectorPlan({ sector, profile }) {
       .order('created_at', { ascending: false })
       .limit(100)
 
+    console.log('Entries fetched for', sector, ':', entries?.length)
     if (!entries || entries.length === 0) {
+      reportWindow.document.open()
+      reportWindow.document.write('<html><body style="font-family:sans-serif;padding:32px;"><h2>No intel logged yet for ' + sector + '</h2><p>Log some practice sessions first, then generate the report.</p></body></html>')
+      reportWindow.document.close()
       setGenerating(false)
       return
     }
+    console.log('Sample entry:', JSON.stringify(entries[0], null, 2))
 
     // Build context summary for AI
     const fishFeedback = entries.filter(e => e.entry_type === 'fish_feedback')
@@ -249,9 +254,10 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
+    win.document.open()
     win.document.write(html)
     win.document.close()
-    setTimeout(() => win.print(), 500)
+    setTimeout(() => win.print(), 800)
   }
 
   function timeAgo(ts) {
@@ -304,9 +310,10 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
+    win.document.open()
     win.document.write(html)
     win.document.close()
-    setTimeout(() => win.print(), 500)
+    setTimeout(() => win.print(), 800)
   }
 
   if (loading) return <div className="spinner" />
