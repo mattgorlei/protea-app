@@ -243,10 +243,7 @@ Generate the remaining sections based on the feed data. Return ONLY a JSON objec
 </body>
 </html>`
 
-    win.document.open()
-    win.document.write(html)
-    win.document.close()
-    setTimeout(() => win.print(), 800)
+    setReportHtml(html)
   }
 
   function timeAgo(ts) {
