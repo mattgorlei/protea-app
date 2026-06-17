@@ -12,7 +12,7 @@ const PLAN_SECTIONS = [
   { key: 'coach_notes',    label: 'Coach Notes',        placeholder: 'Pinned headline message to the team before this session...' },
 ]
 
-function PlanSection({ section, value, isCoach, onSave }) {
+function PlanSection({ section, value, isCoach, isCoachEdited, onSave }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(value || '')
 
@@ -34,11 +34,14 @@ function PlanSection({ section, value, isCoach, onSave }) {
         }}>
           {section.key === 'coach_notes' ? '📌 ' : ''}{section.label}
         </div>
-        {isCoach && !editing && (
-          <button onClick={() => setEditing(true)} style={{ fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            {isEmpty ? '+ Add' : 'Edit'}
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isCoachEdited && <span style={{ fontSize: 10, color: 'var(--gold)', background: 'rgba(255,179,2,0.12)', border: '0.5px solid rgba(255,179,2,0.3)', borderRadius: 99, padding: '1px 7px', fontWeight: 600 }}>Coach edit</span>}
+          {isCoach && !editing && (
+            <button onClick={() => setEditing(true)} style={{ fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              {isEmpty ? '+ Add' : 'Edit'}
+            </button>
+          )}
+        </div>
       </div>
 
       {editing ? (
@@ -95,7 +98,9 @@ export default function SectorPlan({ sector, profile }) {
   }, [fetchPlan])
 
   async function saveSection(key, value) {
-    const newContent = { ...(plan || {}), [key]: value }
+    const coachEdited = new Set(plan?._coach_edited || [])
+    coachEdited.add(key)
+    const newContent = { ...(plan || {}), [key]: value, _coach_edited: [...coachEdited] }
     await supabase.from('sector_plans_v2').upsert({
       sector,
       content: newContent,
@@ -128,6 +133,11 @@ export default function SectorPlan({ sector, profile }) {
     const eodEntries = entries.filter(e => e.entry_type === 'end_of_day')
     const compEntries = entries.filter(e => e.entry_type === 'competition')
 
+    const coachEdited = new Set(plan?._coach_edited || [])
+    const coachEditedSections = coachEdited.size > 0
+      ? [...coachEdited].map(key => key + ': ' + plan[key]).join('\n\n')
+      : 'None — all sections can be generated.'
+
     const context = `
 You are a fly fishing coach assistant helping prepare a competition sector plan for the South African Protea Youth team at the World Youth Fly Fishing Championship in Donegal, Ireland.
 
@@ -149,9 +159,17 @@ ${eodEntries.map(e => `- ${e.profiles?.name} (${e.profiles?.team}): Confidence $
 
 ${compEntries.length > 0 ? `COMPETITION FEEDBACK:\n${compEntries.map(e => `- ${e.profiles?.name}: ${e.comp_fish_count || 0} fish, placing: ${e.comp_placing || 'N/A'}, best method: ${e.comp_most_effective_method || 'N/A'}. Technique: ${e.comp_technique_description || 'N/A'}. Suggestion to next: ${e.comp_suggestion_to_next || 'N/A'}`).join('\n')}` : ''}
 
-Based on this team feedback data, generate a structured sector plan with the following 8 sections. Return ONLY a JSON object with these exact keys: water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, coach_notes.
+CRITICAL RULES:
+- Use ONLY the data provided above. Do NOT add general fly fishing knowledge, assumptions, or information not present in the feed data.
+- If there is not enough data for a section, say "Insufficient intel yet — keep logging" rather than making things up.
+- Format each section as SHORT bullet points (• ), not paragraphs. Max 6 bullets per section.
+- Be specific — use exact fly names, line names, retrieve names and angler observations from the data above.
+- The team fishes loch-style wetflies with competition nymph triggers (UV, hotspots, soft hackle, knotted legs). Only reference this if the data supports it.
 
-Each value should be a detailed paragraph or structured text (use line breaks for readability). Base everything on patterns in the data. Be specific about what worked, what lines, what retrieves, what flies. The team fishes loch-style with wetflies — their core approach uses wetfly construction with competition nymph triggers (UV, hotspots, soft hackle, knotted legs). Keep recommendations aligned with this style. Coach notes should be a punchy 2-3 sentence headline message to the team.
+The following sections have already been edited by the coach — return them EXACTLY as provided, do not change them:
+${coachEditedSections}
+
+Generate the remaining sections based on the feed data. Return ONLY a JSON object with these exact keys: water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, coach_notes.
     `
 
     try {
@@ -167,14 +185,14 @@ Each value should be a detailed paragraph or structured text (use line breaks fo
       const clean = text.replace(/```json|```/g, '').trim()
       const generated = JSON.parse(clean)
 
-      // Merge with existing plan — don't overwrite sections coach has already edited
-      const merged = { ...generated, ...(plan || {}) }
-      // But use generated for empty sections
-      Object.keys(generated).forEach(key => {
-        if (!plan?.[key] || plan[key].trim() === '') {
-          merged[key] = generated[key]
-        }
+      // Merge: coach-edited sections take priority, AI fills the rest
+      const coachEditedKeys = new Set(plan?._coach_edited || [])
+      const merged = { ...(plan || {}), ...generated }
+      // Restore coach-edited sections
+      coachEditedKeys.forEach(key => {
+        if (plan?.[key]) merged[key] = plan[key]
       })
+      merged._coach_edited = [...coachEditedKeys]
 
       await supabase.from('sector_plans_v2').upsert({
         sector,
@@ -235,6 +253,7 @@ Each value should be a detailed paragraph or structured text (use line breaks fo
           section={section}
           value={plan?.[section.key]}
           isCoach={isCoach}
+          isCoachEdited={(plan?._coach_edited || []).includes(section.key)}
           onSave={saveSection}
         />
       ))}
