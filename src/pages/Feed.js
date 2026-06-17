@@ -33,8 +33,10 @@ function entryBody(entry) {
   if (entry.entry_type === 'competition') return entry.comp_technique_description || `${entry.comp_fish_count || 0} fish · ${entry.comp_placing || ''}`
   if (entry.entry_type === 'fish_feedback') {
     const parts = []
+    if (entry.flies?.name) parts.push(`${entry.flies.name} #${entry.flies.size}`)
     if (entry.line_used) parts.push(entry.line_used)
     if (entry.method || entry.river_method) parts.push(entry.method || entry.river_method)
+    if (entry.retrieve_speed) parts.push(entry.retrieve_speed)
     if (entry.retrieve_activations?.length) parts.push(entry.retrieve_activations.join(', '))
     if (entry.additional_notes) parts.push(entry.additional_notes)
     return parts.join(' · ')
@@ -46,6 +48,7 @@ function entryDetail(entry) {
   const rows = []
   if (entry.session_time) rows.push({ label: 'Time', value: entry.session_time })
   if (entry.entry_type === 'fish_feedback') {
+    if (entry.flies?.name) rows.push({ label: 'Fly', value: `${entry.flies.name} #${entry.flies.size}` })
     if (entry.line_used) rows.push({ label: 'Line', value: entry.line_used })
     if (entry.method) rows.push({ label: 'Method', value: entry.method })
     if (entry.river_method) rows.push({ label: 'Method', value: entry.river_method })
@@ -112,7 +115,7 @@ function FeedEntry({ entry, profile, onDelete }) {
   const fetchComments = useCallback(async () => {
     const { data } = await supabase
       .from('comments')
-      .select('*, profiles(name, initials, role, team)')
+      .select('*, profiles(name, initials, role, team), flies(name, size)')
       .eq('entry_id', entry.id)
       .order('created_at', { ascending: true })
     setComments(data || [])
@@ -272,7 +275,7 @@ export default function Feed({ profile }) {
   const fetchEntries = useCallback(async () => {
     let query = supabase
       .from('entries')
-      .select('*, profiles(name, initials, role, team)')
+      .select('*, profiles(name, initials, role, team), flies(name, size)')
       .order('created_at', { ascending: false })
       .limit(50)
 

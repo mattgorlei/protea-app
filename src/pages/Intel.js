@@ -3,6 +3,103 @@ import { supabase, SECTORS, LOUGH_SECTORS } from '../lib/supabase'
 import SectorMap from '../components/SectorMap'
 import SectorPlan from './SectorPlan'
 
+function IntelEntry({ entry }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const typeColors = {
+    fish_feedback: 'rgba(29,158,117,0.4)',
+    observation: 'rgba(255,179,2,0.4)',
+    end_of_day: 'rgba(127,119,221,0.4)',
+    competition: 'rgba(212,83,126,0.4)',
+  }
+  const typeLabels = {
+    fish_feedback: 'Fish feedback',
+    observation: 'Observation',
+    end_of_day: 'End of day',
+    competition: 'Comp session',
+  }
+
+  function summary() {
+    if (entry.entry_type === 'observation') return entry.obs_learning || ''
+    if (entry.entry_type === 'end_of_day') return entry.eod_general_feedback || ''
+    if (entry.entry_type === 'competition') return entry.comp_technique_description || `${entry.comp_fish_count || 0} fish · ${entry.comp_placing || ''}`
+    if (entry.entry_type === 'fish_feedback') {
+      const parts = []
+      if (entry.flies?.name) parts.push(`${entry.flies.name} #${entry.flies.size}`)
+      if (entry.line_used) parts.push(entry.line_used)
+      if (entry.method || entry.river_method) parts.push(entry.method || entry.river_method)
+      if (entry.retrieve_speed) parts.push(entry.retrieve_speed)
+      if (entry.retrieve_activations?.length) parts.push(entry.retrieve_activations.slice(0,3).join(', '))
+      if (entry.additional_notes) parts.push(entry.additional_notes)
+      return parts.join(' · ')
+    }
+    return ''
+  }
+
+  function details() {
+    const rows = []
+    if (entry.session_time) rows.push({ label: 'Time', value: entry.session_time })
+    if (entry.entry_type === 'fish_feedback') {
+      if (entry.flies?.name) rows.push({ label: 'Fly', value: `${entry.flies.name} #${entry.flies.size}` })
+      if (entry.line_used) rows.push({ label: 'Line', value: entry.line_used })
+      if (entry.method || entry.river_method) rows.push({ label: 'Method', value: entry.method || entry.river_method })
+      if (entry.retrieve_speed) rows.push({ label: 'Speed', value: entry.retrieve_speed })
+      if (entry.retrieve_activations?.length) rows.push({ label: 'Activation', value: entry.retrieve_activations.join(', ') })
+      if (entry.additional_notes) rows.push({ label: 'Notes', value: entry.additional_notes })
+    }
+    if (entry.entry_type === 'observation') {
+      if (entry.obs_learning) rows.push({ label: 'Learning', value: entry.obs_learning })
+      if (entry.obs_importance) rows.push({ label: 'Why it matters', value: entry.obs_importance })
+      if (entry.obs_other) rows.push({ label: 'Other', value: entry.obs_other })
+    }
+    if (entry.entry_type === 'end_of_day') {
+      if (entry.eod_practiced_for) rows.push({ label: 'Practiced for', value: entry.eod_practiced_for })
+      if (entry.eod_confidence) rows.push({ label: 'Confidence', value: `${entry.eod_confidence}/5` })
+      if (entry.eod_key_learnings?.length) rows.push({ label: 'Key learnings', value: entry.eod_key_learnings.join(' · ') })
+      if (entry.eod_biggest_challenge) rows.push({ label: 'Challenge', value: entry.eod_biggest_challenge })
+      if (entry.eod_general_feedback) rows.push({ label: 'Feedback', value: entry.eod_general_feedback })
+    }
+    if (entry.entry_type === 'competition') {
+      if (entry.comp_fish_count != null) rows.push({ label: 'Fish', value: entry.comp_fish_count })
+      if (entry.comp_placing) rows.push({ label: 'Placing', value: entry.comp_placing })
+      if (entry.comp_most_effective_method) rows.push({ label: 'Best method', value: entry.comp_most_effective_method })
+      if (entry.comp_technique_description) rows.push({ label: 'Technique', value: entry.comp_technique_description })
+      if (entry.comp_suggestion_to_next) rows.push({ label: 'Tip for next', value: entry.comp_suggestion_to_next })
+    }
+    return rows
+  }
+
+  const borderColor = typeColors[entry.entry_type] || 'var(--border)'
+
+  return (
+    <div className="feed-item" style={{ borderColor, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <span className="feed-tag" style={{ borderColor }}>{typeLabels[entry.entry_type]}</span>
+        <span className="feed-tag">{entry.profiles?.name}</span>
+        {entry.profiles?.team && <span className={`badge badge-${entry.profiles.team.toLowerCase()}`}>{entry.profiles.team}</span>}
+        {entry.session_time && <span className="feed-tag">🕐 {entry.session_time}</span>}
+      </div>
+      <div
+        style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.55, cursor: 'pointer', marginBottom: expanded ? 10 : 0 }}
+        onClick={() => setExpanded(v => !v)}
+      >
+        {summary()}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>{expanded ? '▲' : '▼'}</span>
+      </div>
+      {expanded && (
+        <div style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
+          {details().map(({ label, value }) => (
+            <div key={label} style={{ display: 'flex', gap: 8, padding: '5px 0', borderBottom: '0.5px solid var(--border)', fontSize: 13 }}>
+              <span style={{ color: 'var(--text-secondary)', minWidth: 110, flexShrink: 0 }}>{label}</span>
+              <span style={{ color: 'var(--text)', lineHeight: 1.45 }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Intel({ profile }) {
   const [sector, setSector] = useState(SECTORS[0])
   const [view, setView] = useState('intel') // 'intel' | 'plan'
@@ -23,8 +120,8 @@ export default function Intel({ profile }) {
 
     const [entriesRes, planRes, fliesRes, pwRes] = await Promise.all([
       sector.startsWith('pw:')
-        ? supabase.from('entries').select('*, profiles(name, team)').eq('practice_water_name', sector.replace('pw:', '')).order('created_at', { ascending: false }).limit(30)
-        : supabase.from('entries').select('*, profiles(name, team)').or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`).order('created_at', { ascending: false }).limit(30),
+        ? supabase.from('entries').select('*, profiles(name, team), flies(name, size)').eq('practice_water_name', sector.replace('pw:', '')).order('created_at', { ascending: false }).limit(30)
+        : supabase.from('entries').select('*, profiles(name, team), flies(name, size)').or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`).order('created_at', { ascending: false }).limit(30),
       sector.startsWith('pw:') ? Promise.resolve({ data: null }) : supabase.from('sector_plans').select('*').eq('sector', sector).single(),
       supabase.from('flies').select('*'),
       supabase.from('practice_waters').select('*').order('name'),
@@ -192,14 +289,7 @@ export default function Intel({ profile }) {
             <>
               <div className="section-label">Recent intel</div>
               {recentIntel.map(e => (
-                <div className="feed-item" key={e.id} style={{ marginBottom: 8 }}>
-                  <div className="feed-tags">
-                    <span className="feed-tag">{e.entry_type === 'observation' ? 'Observation' : 'Fish feedback'}</span>
-                    <span className="feed-tag">{e.profiles?.name}</span>
-                    {e.profiles?.team && <span className={`badge badge-${e.profiles.team.toLowerCase()}`}>{e.profiles.team}</span>}
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{entrySnippet(e)}</div>
-                </div>
+                <IntelEntry key={e.id} entry={e} />
               ))}
             </>
           )}
