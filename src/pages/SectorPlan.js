@@ -155,18 +155,15 @@ Each value should be a detailed paragraph or structured text (use line breaks fo
     `
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: context }],
-        })
+        body: JSON.stringify({ context }),
       })
 
       const data = await response.json()
-      const text = data.content?.find(b => b.type === 'text')?.text || ''
+      if (!response.ok) throw new Error(data.error || 'Generation failed')
+      const text = data.text || ''
       const clean = text.replace(/```json|```/g, '').trim()
       const generated = JSON.parse(clean)
 
