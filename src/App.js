@@ -24,6 +24,7 @@ export default function App() {
   const [tab, setTab] = useState('feed')
   const [toast, setToast] = useState(null)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -75,8 +76,24 @@ export default function App() {
           <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
-          <div className="topbar-avatar" style={{ background: teamColor.bg, color: teamColor.text }}>
-            {profile.initials || profile.name?.slice(0, 2).toUpperCase()}
+          <div style={{ position: 'relative' }}>
+            <div className="topbar-avatar" style={{ background: teamColor.bg, color: teamColor.text, cursor: 'pointer' }} onClick={() => setShowProfileMenu(v => !v)}>
+              {profile.initials || profile.name?.slice(0, 2).toUpperCase()}
+            </div>
+            {showProfileMenu && (
+              <div style={{ position: 'absolute', right: 0, top: 42, background: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: 'var(--radius)', zIndex: 50, minWidth: 180, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+                <div style={{ padding: '12px 14px', borderBottom: '0.5px solid var(--border)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{profile.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{profile.team} · {profile.role}</div>
+                </div>
+                <button onClick={async () => {
+                  const { supabase: sb } = await import('./lib/supabase')
+                  await sb.auth.signOut()
+                }} style={{ display: 'block', width: '100%', padding: '12px 14px', background: 'none', border: 'none', color: '#F09595', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}>
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
