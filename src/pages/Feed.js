@@ -259,6 +259,34 @@ function FeedEntry({ entry, profile, onDelete }) {
   )
 }
 
+function AnnouncementCard({ ann, profile, onDelete, onTogglePin }) {
+  const isCoach = ['coach', 'manager'].includes(profile?.role)
+  return (
+    <div style={{
+      background: ann.pinned ? 'rgba(255,179,2,0.08)' : 'var(--bg-card)',
+      border: `1px solid ${ann.pinned ? 'rgba(255,179,2,0.4)' : 'var(--border)'}`,
+      borderRadius: 12, padding: '12px 14px', marginBottom: 10
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 14 }}>{ann.pinned ? '📌' : '📣'}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: ann.pinned ? 'var(--gold)' : 'var(--text)' }}>
+          {ann.profiles?.name}
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{timeAgo(ann.created_at)}</span>
+        {isCoach && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => onTogglePin(ann)} style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              {ann.pinned ? 'Unpin' : 'Pin'}
+            </button>
+            <button onClick={() => onDelete(ann.id)} style={{ fontSize: 11, color: '#F09595', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
+          </div>
+        )}
+      </div>
+      <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{ann.body}</div>
+    </div>
+  )
+}
+
 const ENTRY_COLORS = {
   fish_feedback: { border: 'rgba(29,158,117,0.4)', bg: 'rgba(29,158,117,0.06)', label: '#5DCAA5' },
   observation:   { border: 'rgba(255,179,2,0.4)',   bg: 'rgba(255,179,2,0.06)',   label: '#FFB302' },
@@ -271,6 +299,40 @@ export default function Feed({ profile }) {
   const [loading, setLoading] = useState(true)
   const [sector, setSector] = useState('All')
   const [practiceWaters, setPracticeWaters] = useState([])
+  const [announcements, setAnnouncements] = useState([])
+  const [newAnnouncement, setNewAnnouncement] = useState('')
+  const [postingAnn, setPostingAnn] = useState(false)
+  const [showAnnForm, setShowAnnForm] = useState(false)
+  const isCoach = ['coach', 'manager'].includes(profile?.role)
+
+  const fetchAnnouncements = useCallback(async () => {
+    const { data } = await supabase
+      .from('announcements')
+      .select('*, profiles(name)')
+      .order('pinned', { ascending: false })
+      .order('created_at', { ascending: false })
+    setAnnouncements(data || [])
+  }, [])
+
+  async function postAnnouncement() {
+    if (!newAnnouncement.trim()) return
+    setPostingAnn(true)
+    await supabase.from('announcements').insert({ user_id: profile.id, body: newAnnouncement.trim() })
+    setNewAnnouncement('')
+    setShowAnnForm(false)
+    setPostingAnn(false)
+    fetchAnnouncements()
+  }
+
+  async function deleteAnnouncement(id) {
+    await supabase.from('announcements').delete().eq('id', id)
+    fetchAnnouncements()
+  }
+
+  async function togglePin(ann) {
+    await supabase.from('announcements').update({ pinned: !ann.pinned }).eq('id', ann.id)
+    fetchAnnouncements()
+  }
 
   const fetchEntries = useCallback(async () => {
     let query = supabase
@@ -294,6 +356,7 @@ export default function Feed({ profile }) {
 
   useEffect(() => {
     fetchEntries()
+    fetchAnnouncements()
     supabase.from('practice_waters').select('*').order('name').then(({ data }) => setPracticeWaters(data || []))
 
     const channel = supabase
@@ -313,6 +376,46 @@ export default function Feed({ profile }) {
 
   return (
     <div className="screen active" id="screen-feed">
+      {/* Pinned announcements always show */}
+      {announcements.filter(a => a.pinned).map(ann => (
+        <AnnouncementCard key={ann.id} ann={ann} profile={profile} onDelete={deleteAnnouncement} onTogglePin={togglePin} />
+      ))}
+
+      {/* Coach announcement form */}
+      {isCoach && (
+        <div style={{ marginBottom: 10 }}>
+          {showAnnForm ? (
+            <div className="card" style={{ marginBottom: 0 }}>
+              <label style={{ marginTop: 0 }}>Announcement</label>
+              <textarea
+                rows={3}
+                placeholder="Share something with the team..."
+                value={newAnnouncement}
+                onChange={e => setNewAnnouncement(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn" style={{ marginTop: 10 }} onClick={postAnnouncement} disabled={postingAnn || !newAnnouncement.trim()}>
+                  {postingAnn ? 'Posting...' : 'Post announcement'}
+                </button>
+                <button className="btn btn-secondary" style={{ marginTop: 10 }} onClick={() => setShowAnnForm(false)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAnnForm(true)}
+              style={{ width: '100%', padding: '10px', background: 'rgba(255,179,2,0.08)', border: '1px dashed rgba(255,179,2,0.4)', borderRadius: 10, color: 'var(--gold)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
+            >
+              📣 Post announcement
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Unpinned announcements */}
+      {sector === 'All' && announcements.filter(a => !a.pinned).map(ann => (
+        <AnnouncementCard key={ann.id} ann={ann} profile={profile} onDelete={deleteAnnouncement} onTogglePin={togglePin} />
+      ))}
+
       <div className="sector-scroll">
         {['All', 'All Loughs', ...SECTORS].map(s => (
           <div key={s} className={`sector-pill ${sector === s ? 'active' : ''}`} onClick={() => setSector(s)}>

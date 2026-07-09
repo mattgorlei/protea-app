@@ -170,6 +170,7 @@ export default function Log({ profile, showToast }) {
     setCompBeat(''); setCompPartner(''); setCompFishCount(''); setCompPlacing('')
     setCompFlyIds([]); setCompMethodsFished([]); setCompBestMethod('')
     setCompTechDesc(''); setCompBoatNotes(''); setCompSuggestion('')
+    setEntryImage(null); setEntryImagePreview(null)
   }
 
   async function submit() {
@@ -224,8 +225,20 @@ export default function Log({ profile, showToast }) {
       }
     }
 
+    // Upload image if attached
+    let imageUrl = null
+    if (entryImage) {
+      const ext = entryImage.name.split('.').pop()
+      const path = `entry-images/${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('fly-photos').upload(path, entryImage)
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('fly-photos').getPublicUrl(path)
+        imageUrl = urlData.publicUrl
+      }
+    }
+
     console.log('Submitting entry:', { ...base, ...extra })
-    const { data, error } = await supabase.from('entries').insert({ ...base, ...extra }).select()
+    const { data, error } = await supabase.from('entries').insert({ ...base, ...extra, image_url: imageUrl }).select()
     console.log('Supabase response:', { data, error })
     setSubmitting(false)
     if (!error) {
@@ -376,6 +389,18 @@ export default function Log({ profile, showToast }) {
 
           <label>Additional notes</label>
           <textarea rows={3} placeholder="Area, fly combos, follows, short eats, what induced the take..." value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} />
+          <label>Photo (optional)</label>
+          {entryImagePreview && <img src={entryImagePreview} alt="entry" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 6 }} />}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <label htmlFor="entry-img-cam-lough" style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ cursor: 'pointer', padding: '10px', textAlign: 'center', fontSize: 12 }}>📷 Camera</div>
+            </label>
+            <label htmlFor="entry-img-gal-lough" style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ cursor: 'pointer', padding: '10px', textAlign: 'center', fontSize: 12 }}>🖼️ Gallery</div>
+            </label>
+          </div>
+          <input id="entry-img-cam-lough" type="file" accept="image/*" capture="environment" onChange={e => { const f = e.target.files[0]; if(f){setEntryImage(f);setEntryImagePreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
+          <input id="entry-img-gal-lough" type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){setEntryImage(f);setEntryImagePreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
         </>
       )}
 
@@ -418,6 +443,18 @@ export default function Log({ profile, showToast }) {
 
           <label>Additional notes</label>
           <textarea rows={3} placeholder="Water type, depth, drift, anything specific..." value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} />
+          <label>Photo (optional)</label>
+          {entryImagePreview && <img src={entryImagePreview} alt="entry" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 6 }} />}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <label htmlFor="entry-img-cam-river" style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ cursor: 'pointer', padding: '10px', textAlign: 'center', fontSize: 12 }}>📷 Camera</div>
+            </label>
+            <label htmlFor="entry-img-gal-river" style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ cursor: 'pointer', padding: '10px', textAlign: 'center', fontSize: 12 }}>🖼️ Gallery</div>
+            </label>
+          </div>
+          <input id="entry-img-cam-river" type="file" accept="image/*" capture="environment" onChange={e => { const f = e.target.files[0]; if(f){setEntryImage(f);setEntryImagePreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
+          <input id="entry-img-gal-river" type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){setEntryImage(f);setEntryImagePreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
         </>
       )}
 
@@ -435,6 +472,18 @@ export default function Log({ profile, showToast }) {
 
           <label>Other notes</label>
           <textarea rows={2} placeholder="Anything else..." value={obsOther} onChange={e => setObsOther(e.target.value)} />
+          <label>Photo (optional)</label>
+          {entryImagePreview && <img src={entryImagePreview} alt="entry" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 6 }} />}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <label htmlFor="entry-img-cam-obs" style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ cursor: 'pointer', padding: '10px', textAlign: 'center', fontSize: 12 }}>📷 Camera</div>
+            </label>
+            <label htmlFor="entry-img-gal-obs" style={{ flex: 1, margin: 0 }}>
+              <div className="upload-box" style={{ cursor: 'pointer', padding: '10px', textAlign: 'center', fontSize: 12 }}>🖼️ Gallery</div>
+            </label>
+          </div>
+          <input id="entry-img-cam-obs" type="file" accept="image/*" capture="environment" onChange={e => { const f = e.target.files[0]; if(f){setEntryImage(f);setEntryImagePreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
+          <input id="entry-img-gal-obs" type="file" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){setEntryImage(f);setEntryImagePreview(URL.createObjectURL(f))} }} style={{ display: 'none' }} />
         </>
       )}
 
