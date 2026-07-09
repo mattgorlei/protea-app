@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 // Competition date: July 14 2026 (first comp session)
-const COMP_DATE = new Date('2026-07-14T08:00:00')
+const COMP_DATE = new Date('2026-07-17T08:00:00')
 
 function daysUntilComp() {
   const now = new Date()
