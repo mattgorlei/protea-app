@@ -22,16 +22,19 @@ export default function Profile({ profile, isCoach, showToast }) {
   const daysLeft = daysUntilComp()
 
   const fetchData = useCallback(async () => {
+    try {
     const [entriesRes, focusRes, fliesRes] = await Promise.all([
       supabase.from('entries').select('*, flies(name, size)').eq('user_id', profile.id).order('created_at', { ascending: false }),
-      supabase.from('team_focus').select('*').order('created_at', { ascending: false }).limit(1).single(),
+      supabase.from('team_focus').select('*').order('created_at', { ascending: false }).limit(1),
       supabase.from('flies').select('*'),
     ])
     setEntries(entriesRes.data || [])
-    setTodayFocus(focusRes.data?.body || '')
-    setFocusText(focusRes.data?.body || '')
+    const focusBody = focusRes.data?.[0]?.body || ''
+    setTodayFocus(focusBody)
+    setFocusText(focusBody)
     setFlies(fliesRes.data || [])
     setLoading(false)
+    } catch(err) { console.error('Profile fetch error:', err); setLoading(false) }
   }, [profile.id])
 
   useEffect(() => { fetchData() }, [fetchData])
