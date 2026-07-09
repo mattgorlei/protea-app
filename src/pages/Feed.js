@@ -202,6 +202,14 @@ function FeedEntry({ entry, profile, onDelete }) {
         {entryBody(entry)}
         <span style={{ fontSize: 12, color: 'var(--green-mid)', marginLeft: 4 }}>{expanded ? '▲ less' : '▼ more'}</span>
       </div>
+      {entry.image_url && (
+        <img
+          src={entry.image_url}
+          alt="entry"
+          style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 8, marginBottom: 10, cursor: 'pointer' }}
+          onClick={() => window.open(entry.image_url, '_blank')}
+        />
+      )}
 
       {expanded && (
         <div style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', marginBottom: 10 }}>
