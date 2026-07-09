@@ -58,6 +58,8 @@ export default function Log({ profile, showToast }) {
   const [conditions, setConditions] = useState('')
   const [conditionsOther, setConditionsOther] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [entryImage, setEntryImage] = useState(null)
+  const [entryImagePreview, setEntryImagePreview] = useState(null)
   const [sessionTime, setSessionTime] = useState(() => {
     const now = new Date()
     return now.toTimeString().slice(0, 5) // HH:MM
