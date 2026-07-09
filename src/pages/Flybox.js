@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, SECTORS } from '../lib/supabase'
 
-function FlyCard({ fly, catchCount, showToast, onUpdated }) {
+function FlyCard({ fly, catchCount, showToast, onUpdated, profileId }) {
   const [editingPhoto, setEditingPhoto] = useState(false)
   const [editPhoto, setEditPhoto] = useState(null)
   const [editPreview, setEditPreview] = useState(null)
@@ -32,6 +32,35 @@ function FlyCard({ fly, catchCount, showToast, onUpdated }) {
   }
 
   const displayPhoto = editPreview || fly.photo_url
+  const [reactions, setReactions] = useState({})
+  const [myReaction, setMyReaction] = useState(null)
+
+  useEffect(() => {
+    supabase.from('fly_reactions').select('emoji, user_id').eq('fly_id', fly.id).then(({ data }) => {
+      const counts = {}
+      let mine = null
+      ;(data || []).forEach(r => {
+        counts[r.emoji] = (counts[r.emoji] || 0) + 1
+      })
+      setReactions(counts)
+    })
+  }, [fly.id])
+
+  async function react(emoji, profileId) {
+    if (myReaction === emoji) {
+      await supabase.from('fly_reactions').delete().eq('fly_id', fly.id).eq('user_id', profileId)
+      setReactions(prev => ({ ...prev, [emoji]: Math.max((prev[emoji] || 1) - 1, 0) }))
+      setMyReaction(null)
+    } else {
+      if (myReaction) {
+        await supabase.from('fly_reactions').delete().eq('fly_id', fly.id).eq('user_id', profileId)
+        setReactions(prev => ({ ...prev, [myReaction]: Math.max((prev[myReaction] || 1) - 1, 0) }))
+      }
+      await supabase.from('fly_reactions').insert({ fly_id: fly.id, user_id: profileId, emoji })
+      setReactions(prev => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }))
+      setMyReaction(emoji)
+    }
+  }
 
   return (
     <div className="fly-card">
@@ -48,6 +77,24 @@ function FlyCard({ fly, catchCount, showToast, onUpdated }) {
       <div className="fly-catches">
         {catchCount ? `${catchCount} fish caught` : 'No catches yet'}
       </div>
+      <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+        {['🔥', '👌', '❌'].map(emoji => (
+          <button
+            key={emoji}
+            onClick={() => react(emoji, profileId)}
+            style={{
+              padding: '3px 7px', fontSize: 12,
+              borderRadius: 99,
+              border: `0.5px solid ${myReaction === emoji ? 'var(--gold)' : 'var(--border)'}`,
+              background: myReaction === emoji ? 'rgba(255,179,2,0.12)' : 'var(--bg-input)',
+              cursor: 'pointer', color: 'var(--text-secondary)'
+            }}
+          >
+            {emoji}{reactions[emoji] ? ` ${reactions[emoji]}` : ''}
+          </button>
+        ))}
+      </div>
+
       {editingPhoto ? (
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
           {editPreview && <img src={editPreview} alt="preview" style={{ width: '100%', borderRadius: 6, maxHeight: 80, objectFit: 'cover' }} />}
@@ -286,7 +333,7 @@ export default function Flybox({ profile, showToast }) {
           </div>
           <div className="fly-grid" style={{ marginBottom: 16 }}>
         {grpFlies.map(fly => (
-          <FlyCard key={fly.id} fly={fly} catchCount={catchCounts[fly.id]} showToast={showToast} onUpdated={fetchFlies} />
+          <FlyCard key={fly.id} fly={fly} catchCount={catchCounts[fly.id]} showToast={showToast} onUpdated={fetchFlies} profileId={profile?.id} />
           ))}
           </div>
         </div>
