@@ -53,13 +53,11 @@ export default function Log({ profile, showToast }) {
 
   // If 2+ loughs selected, primary becomes 'All Loughs', else first selected
   const selectedLoughs = sectors.filter(s => LOUGH_SECTOR_NAMES.includes(s))
-  const sector = selectedLoughs.length >= 2 ? 'All Loughs' : (sectors[0] || SECTORS[0])
+  const sector = selectedLoughs.length >= 2 ? 'All Loughs' : (sectors[0] || null)
   const [practiceWaterName, setPracticeWaterName] = useState('')
   const [conditions, setConditions] = useState('')
   const [conditionsOther, setConditionsOther] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [entryImage, setEntryImage] = useState(null)
-  const [entryImagePreview, setEntryImagePreview] = useState(null)
   const [sessionTime, setSessionTime] = useState(() => {
     const now = new Date()
     return now.toTimeString().slice(0, 5) // HH:MM
@@ -87,7 +85,7 @@ export default function Log({ profile, showToast }) {
   // Observation
   const [obsLearning, setObsLearning] = useState('')
   const [obsImportance, setObsImportance] = useState('')
-  const [obsCompSectors, setObsCompSectors] = useState([SECTORS[0]])
+  const [obsCompSectors, setObsCompSectors] = useState([])
   const [obsOther, setObsOther] = useState('')
 
   // End of day
@@ -121,7 +119,7 @@ export default function Log({ profile, showToast }) {
   const resolvedSector = resolvedSectors.length >= 2 &&
     resolvedSectors.every(s => ['Lough Craghy','Lough Anure','Lough Deele'].includes(s))
     ? 'All Loughs'
-    : resolvedSectors[0] || SECTORS[0]
+    : resolvedSectors[0] || null
 
   useEffect(() => {
     supabase.from('practice_waters').select('*').order('name').then(({ data }) => setPracticeWaters(data || []))
@@ -176,15 +174,27 @@ export default function Log({ profile, showToast }) {
   }
 
   async function submit() {
+    // Validate sector selection
+    if (!isComp) {
+      if (!selectedWaterId && sectors.length === 0) {
+        showToast('Please select a practice water or sector')
+        return
+      }
+    } else {
+      if (!sectors[0]) {
+        showToast('Please select a competition sector')
+        return
+      }
+    }
     setSubmitting(true)
     const base = {
       user_id: profile.id,
       entry_mode: mode,
       water_type: mode === 'competition' ? (LOUGH_SECTORS.includes(sector) ? 'lough' : 'river') : waterType,
       entry_type: mode === 'competition' ? 'competition' : entryType,
-      sector: selectedWater ? resolvedSector : (sectors[0] || SECTORS[0]),
+      sector: selectedWater ? resolvedSector : sectors[0],
       practice_water_name: selectedWater ? selectedWater.name : (practiceWaterName || null),
-      applicable_sectors: selectedWater ? resolvedSectors : (sectors.length ? sectors : [SECTORS[0]]),
+      applicable_sectors: selectedWater ? resolvedSectors : sectors,
       conditions: conditions === 'Other' ? conditionsOther : conditions,
       session_time: sessionTime,
     }
