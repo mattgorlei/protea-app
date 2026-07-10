@@ -188,16 +188,30 @@ water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, c
       })
 
       const data = await response.json()
+      console.log('API ok:', response.ok, 'text length:', data.text?.length)
       if (!response.ok) throw new Error(data.error || 'Generation failed')
       const text = data.text || ''
+      console.log('Raw response preview:', text.substring(0, 200))
       const clean = text.replace(/```json|```/g, '').trim()
-      const generated = JSON.parse(clean)
+      let generated
+      try {
+        generated = JSON.parse(clean)
+        console.log('Parsed sections:', Object.keys(generated))
+      } catch(parseErr) {
+        console.error('JSON parse failed:', parseErr.message)
+        console.log('Clean text:', clean.substring(0, 500))
+        // Show raw text in report if JSON fails
+        setReportHtml('<html><body style="font-family:sans-serif;padding:32px;color:#333;"><h2>Raw AI Response</h2><pre style="white-space:pre-wrap;font-size:13px;">' + clean + '</pre></body></html>')
+        setGenerating(false)
+        return
+      }
 
       // Export as PDF — don't touch the sector plan
       exportIntelPDF(generated)
 
     } catch (err) {
       console.error('Generate error:', err)
+      setReportHtml('<html><body style="font-family:sans-serif;padding:32px;color:#333;"><h2>Error generating report</h2><p>' + err.message + '</p></body></html>')
     }
 
     setGenerating(false)
