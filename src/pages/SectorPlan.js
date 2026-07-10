@@ -119,7 +119,7 @@ export default function SectorPlan({ sector, profile }) {
     const { data: entries } = await supabase
       .from('entries')
       .select('*, profiles(name, team)')
-      .or(`sector.eq.${sector},applicable_sectors.cs.{"${sector}"}`)
+      .eq('sector', sector)
       .order('created_at', { ascending: false })
       .limit(100)
 
