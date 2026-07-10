@@ -220,7 +220,8 @@ water_profile, game_plan, starting_plan, techniques, flies, lines, challenges, c
   function exportIntelPDF(intel) {
     const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     const sections = PLAN_SECTIONS.map(s => {
-      const val = typeof intel?.[s.key] === 'string' && intel[s.key] ? intel[s.key] : null
+      const raw = intel?.[s.key]
+      const val = Array.isArray(raw) ? raw.join('\n') : (typeof raw === 'string' ? raw : null)
       if (!val) return ''
       return `<div class="section">
         <div class="section-title">${s.label}</div>
