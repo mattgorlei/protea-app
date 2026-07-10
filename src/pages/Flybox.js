@@ -139,8 +139,8 @@ export default function Flybox({ profile, showToast }) {
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [sectorFilter, setSectorFilter] = useState('All')
 
-  const canAdd = ['coach', 'manager'].includes(profile?.role) ||
-    profile?.role === 'angler'
+  const canAdd = ['coach', 'manager'].includes(profile?.role?.toLowerCase()) ||
+    profile?.role?.toLowerCase() === 'angler'
 
   async function fetchFlies() {
     const { data } = await supabase.from('flies').select('*, profiles(name)').order('created_at', { ascending: false })

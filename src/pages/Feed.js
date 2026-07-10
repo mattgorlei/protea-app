@@ -82,7 +82,7 @@ function entryDetail(entry) {
   return rows
 }
 
-function FeedEntry({ entry, profile, onDelete }) {
+function FeedEntry({ entry, profile, onDelete, onEdit }) {
   const [reactions, setReactions] = useState([])
   const [comments, setComments] = useState([])
   const [showComments, setShowComments] = useState(false)
@@ -91,9 +91,24 @@ function FeedEntry({ entry, profile, onDelete }) {
   const [submitting, setSubmitting] = useState(false)
   const [flagged, setFlagged] = useState(entry.flag_requested || false)
   const [showMenu, setShowMenu] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editSector, setEditSector] = useState(entry.sector || '')
+  const [editNotes, setEditNotes] = useState(entry.additional_notes || entry.obs_learning || '')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const isOwn = entry.user_id === profile?.id
-  const isManagement = ['coach', 'manager'].includes(profile?.role)
+  const isManagement = ['coach', 'manager'].includes(profile?.role?.toLowerCase()?.toLowerCase())
+
+  async function saveEdit() {
+    setSavingEdit(true)
+    const updates = { sector: editSector }
+    if (entry.entry_type === 'fish_feedback') updates.additional_notes = editNotes
+    if (entry.entry_type === 'observation') updates.obs_learning = editNotes
+    await supabase.from('entries').update(updates).eq('id', entry.id)
+    setSavingEdit(false)
+    setEditing(false)
+    onEdit && onEdit()
+  }
 
   async function requestDelete() {
     await supabase.from('entries').update({ flag_requested: true }).eq('id', entry.id)
@@ -177,7 +192,10 @@ function FeedEntry({ entry, profile, onDelete }) {
                   <button onClick={requestDelete} style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'var(--text)', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}>🚩 Request delete</button>
                 )}
                 {isManagement && (
-                  <button onClick={deleteEntry} style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: '#F09595', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}>🗑️ Delete entry</button>
+                  <>
+                    <button onClick={() => { setEditing(true); setShowMenu(false) }} style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'var(--text)', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}>✏️ Edit entry</button>
+                    <button onClick={deleteEntry} style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: '#F09595', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}>🗑️ Delete entry</button>
+                  </>
                 )}
                 <button onClick={() => setShowMenu(false)} style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}>Cancel</button>
               </div>
@@ -188,6 +206,24 @@ function FeedEntry({ entry, profile, onDelete }) {
       {flagged && (
         <div style={{ fontSize: 11, color: '#FAC775', background: 'rgba(250,199,117,0.1)', border: '0.5px solid rgba(250,199,117,0.3)', borderRadius: 6, padding: '4px 8px', marginBottom: 8 }}>
           {isManagement ? '🚩 Delete requested by angler' : '🚩 Delete request sent to management'}
+        </div>
+      )}
+      {editing && (
+        <div style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 10, border: '0.5px solid var(--border-focus)' }}>
+          <label style={{ marginTop: 0 }}>Sector</label>
+          <select value={editSector} onChange={e => setEditSector(e.target.value)} style={{ width: '100%', background: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text)', fontSize: 14, padding: '8px 10px' }}>
+            {['Lough Craghy','Lough Anure','Lough Deele','River Dennett','River Quiggery','All Loughs'].map(s => <option key={s}>{s}</option>)}
+          </select>
+          {(entry.entry_type === 'fish_feedback' || entry.entry_type === 'observation') && (
+            <>
+              <label>{entry.entry_type === 'fish_feedback' ? 'Additional notes' : 'Learning'}</label>
+              <textarea rows={3} value={editNotes} onChange={e => setEditNotes(e.target.value)} style={{ width: '100%', background: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text)', fontSize: 14, padding: '8px 10px', resize: 'none', fontFamily: 'inherit' }} />
+            </>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button className="btn" style={{ marginTop: 0 }} onClick={saveEdit} disabled={savingEdit}>{savingEdit ? 'Saving...' : 'Save changes'}</button>
+            <button className="btn btn-secondary" style={{ marginTop: 0 }} onClick={() => setEditing(false)}>Cancel</button>
+          </div>
         </div>
       )}
 
@@ -268,7 +304,7 @@ function FeedEntry({ entry, profile, onDelete }) {
 }
 
 function AnnouncementCard({ ann, profile, onDelete, onTogglePin }) {
-  const isCoach = ['coach', 'manager'].includes(profile?.role)
+  const isCoach = ['coach', 'manager'].includes(profile?.role?.toLowerCase())
   return (
     <div style={{
       background: ann.pinned ? 'rgba(255,179,2,0.08)' : 'var(--bg-card)',
@@ -311,7 +347,7 @@ export default function Feed({ profile }) {
   const [newAnnouncement, setNewAnnouncement] = useState('')
   const [postingAnn, setPostingAnn] = useState(false)
   const [showAnnForm, setShowAnnForm] = useState(false)
-  const isCoach = ['coach', 'manager'].includes(profile?.role)
+  const isCoach = ['coach', 'manager'].includes(profile?.role?.toLowerCase())
 
   const fetchAnnouncements = useCallback(async () => {
     const { data } = await supabase
@@ -452,7 +488,7 @@ export default function Feed({ profile }) {
       )}
 
       {entries.map(entry => (
-        <FeedEntry key={entry.id} entry={entry} profile={profile} onDelete={id => setEntries(prev => prev.filter(e => e.id !== id))} />
+        <FeedEntry key={entry.id} entry={entry} profile={profile} onDelete={id => setEntries(prev => prev.filter(e => e.id !== id))} onEdit={fetchEntries} />
       ))}
     </div>
   )
