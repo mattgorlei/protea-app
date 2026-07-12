@@ -121,8 +121,16 @@ export default function MiniComp({ profile }) {
   const scores = calcScores()
 
   // Individual rankings
+  // Total fish caught per player across all sessions
+  const fishCaught = {}
+  sessions.forEach(sess => {
+    Object.entries(sess.fish_counts || {}).forEach(([name, count]) => {
+      fishCaught[name] = (fishCaught[name] || 0) + count
+    })
+  })
+
   const individualRankings = ALL_PLAYERS
-    .map(p => ({ ...p, score: scores[p.name] || 0 }))
+    .map(p => ({ ...p, score: scores[p.name] || 0, fish: fishCaught[p.name] || 0 }))
     .sort((a, b) => b.score - a.score)
 
   // Team rankings
@@ -235,7 +243,7 @@ export default function MiniComp({ profile }) {
                   <span style={{ fontSize: 14, minWidth: 28, color: 'var(--text-muted)' }}>{medal(i)}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: team?.color || 'var(--text-muted)' }}>{team?.name}</div>
+                    <div style={{ fontSize: 11, color: team?.color || 'var(--text-muted)' }}>{team?.name} · {p.fish} 🐟</div>
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: p.score >= 0 ? 'var(--gold)' : '#F09595' }}>
                     {p.score > 0 ? '+' : ''}{p.score}
