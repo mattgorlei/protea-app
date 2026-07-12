@@ -46,7 +46,6 @@ export default function MiniComp({ profile }) {
   const isCoach = ['coach', 'manager'].includes(profile?.role?.toLowerCase())
   const [tab, setTab] = useState('leaderboard')
   const [sessions, setSessions] = useState([])
-  const [boats, setBoats] = useState(DEFAULT_BOATS)
   const [loading, setLoading] = useState(true)
 
   // Session entry state
@@ -54,19 +53,31 @@ export default function MiniComp({ profile }) {
   const [fishCounts, setFishCounts] = useState({})
   const [saving, setSaving] = useState(false)
 
-  // Team management
+  // Per-session boat assignments
+  const [sessionBoats, setSessionBoats] = useState({})
   const [editingBoats, setEditingBoats] = useState(false)
   const [draftBoats, setDraftBoats] = useState(DEFAULT_BOATS)
+
+  // Current session's boats
+  const boats = sessionBoats[activeSession] || DEFAULT_BOATS
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     const { data: sessData } = await supabase.from('mini_comp_sessions').select('*').order('created_at')
     const { data: boatData } = await supabase.from('mini_comp_boats').select('*').order('boat_number')
-    if (sessData) setSessions(sessData)
+    if (sessData) {
+      setSessions(sessData)
+      // Build per-session boats map
+      const boatsMap = {}
+      sessData.forEach(s => {
+        if (s.boats && s.boats.length > 0) boatsMap[s.session_name] = s.boats
+      })
+      setSessionBoats(boatsMap)
+    }
     if (boatData && boatData.length > 0) {
+      // Legacy: if no session boats set yet, use global boats as default
       const b = [[], [], [], [], []]
       boatData.forEach(row => { b[row.boat_number - 1] = row.players })
-      setBoats(b)
       setDraftBoats(b)
     }
     setLoading(false)
@@ -136,20 +147,40 @@ export default function MiniComp({ profile }) {
 
   async function saveBoats() {
     setSaving(true)
-    await supabase.from('mini_comp_boats').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    for (let i = 0; i < draftBoats.length; i++) {
-      await supabase.from('mini_comp_boats').insert({ boat_number: i + 1, players: draftBoats[i] })
+    // Save boats to the session record (upsert session with boats)
+    const existing = sessions.find(s => s.session_name === activeSession)
+    if (existing) {
+      await supabase.from('mini_comp_sessions').update({ boats: draftBoats }).eq('id', existing.id)
+    } else {
+      await supabase.from('mini_comp_sessions').insert({ session_name: activeSession, fish_counts: {}, boats: draftBoats })
     }
-    setBoats(draftBoats)
+    setSessionBoats(prev => ({ ...prev, [activeSession]: draftBoats }))
     setEditingBoats(false)
     setSaving(false)
+    await fetchData()
   }
 
-  // Load existing session counts when switching sessions
+  // Load existing session data when switching sessions
   useEffect(() => {
     const existing = sessions.find(s => s.session_name === activeSession)
     setFishCounts(existing?.fish_counts || {})
-  }, [activeSession, sessions])
+    // Load this session's boats into draft, fall back to previous session or default
+    const thisBoats = sessionBoats[activeSession]
+    if (thisBoats) {
+      setDraftBoats(thisBoats)
+    } else {
+      // Try to copy from previous session
+      const sessionIdx = SESSIONS.indexOf(activeSession)
+      if (sessionIdx > 0) {
+        const prevSession = SESSIONS[sessionIdx - 1]
+        const prevBoats = sessionBoats[prevSession]
+        if (prevBoats) setDraftBoats(prevBoats)
+        else setDraftBoats(DEFAULT_BOATS)
+      } else {
+        setDraftBoats(DEFAULT_BOATS)
+      }
+    }
+  }, [activeSession, sessions, sessionBoats])
 
   const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
 
@@ -282,8 +313,17 @@ export default function MiniComp({ profile }) {
       {/* BOATS MANAGEMENT */}
       {tab === 'boats' && isCoach && (
         <>
+          {/* Session selector for boats */}
+          <div className="segment" style={{ marginBottom: 14 }}>
+            {SESSIONS.map(s => (
+              <button key={s} className={`seg-btn ${activeSession === s ? 'active' : ''}`} onClick={() => setActiveSession(s)}>
+                {s.replace('Session ', 'S')}
+                {sessionBoats[s] && <span style={{ color: 'var(--gold)', marginLeft: 2 }}>✓</span>}
+              </button>
+            ))}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div className="section-label" style={{ marginBottom: 0 }}>Boat assignments</div>
+            <div className="section-label" style={{ marginBottom: 0 }}>Boats · {activeSession}</div>
             {!editingBoats
               ? <button onClick={() => setEditingBoats(true)} style={{ fontSize: 13, color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Edit</button>
               : <div style={{ display: 'flex', gap: 10 }}>
