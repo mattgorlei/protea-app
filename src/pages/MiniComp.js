@@ -104,7 +104,7 @@ export default function MiniComp({ profile }) {
             // -caught for each boat partner (not per fish, just total caught by this angler)
             boat.forEach(other => {
               if (other !== angler) {
-                scores[other] = (scores[other] || 0) - caught
+                scores[other] = (scores[other] || 0) - (caught * 0.5)
               }
             })
           }
