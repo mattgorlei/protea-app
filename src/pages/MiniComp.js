@@ -31,7 +31,7 @@ function getTeam(playerId) {
   return TEAMS.find(t => t.members.includes(playerId))
 }
 
-const SESSIONS = ['Session 1', 'Session 2', 'Session 3']
+const SESSIONS = ['Session 1', 'Session 2', 'Session 3', 'Session 4', 'Session 5', 'Session 6']
 
 // Boats: 5 boats x 3 players
 const DEFAULT_BOATS = [
@@ -81,14 +81,16 @@ export default function MiniComp({ profile }) {
 
     sessions.forEach(sess => {
       const counts = sess.fish_counts || {}
-      const boatsList = sess.boats || boats
+      // Use saved boats from session, fall back to current boats
+      const boatsList = (sess.boats && sess.boats.length > 0) ? sess.boats : boats
 
       boatsList.forEach(boat => {
         boat.forEach(angler => {
           const caught = counts[angler] || 0
           if (caught > 0) {
+            // +caught for this angler
             scores[angler] = (scores[angler] || 0) + caught
-            // -1 for each other angler on same boat per fish caught
+            // -caught for each boat partner (not per fish, just total caught by this angler)
             boat.forEach(other => {
               if (other !== angler) {
                 scores[other] = (scores[other] || 0) - caught
@@ -98,6 +100,9 @@ export default function MiniComp({ profile }) {
         })
       })
     })
+
+    // Debug log
+    console.log('Scores calculated:', scores)
 
     return scores
   }
@@ -120,9 +125,9 @@ export default function MiniComp({ profile }) {
     setSaving(true)
     const existing = sessions.find(s => s.session_name === activeSession)
     if (existing) {
-      await supabase.from('mini_comp_sessions').update({ fish_counts: fishCounts, boats }).eq('id', existing.id)
+      await supabase.from('mini_comp_sessions').update({ fish_counts: fishCounts, boats: boats }).eq('id', existing.id)
     } else {
-      await supabase.from('mini_comp_sessions').insert({ session_name: activeSession, fish_counts: fishCounts, boats })
+      await supabase.from('mini_comp_sessions').insert({ session_name: activeSession, fish_counts: fishCounts, boats: boats })
     }
     await fetchData()
     setFishCounts({})
