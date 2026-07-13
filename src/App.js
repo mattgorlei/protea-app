@@ -110,40 +110,5 @@ export default function App() {
         {tab === 'intel' && <Intel profile={profile} />}
         {tab === 'prep' && <PrepChecklist profile={profile} />}
         {tab === 'settings' && <PracticeWaters profile={profile} showToast={showToast} />}
-        {tab === 'comp' && (
-          <div className="screen active">
-            <div className="section-label">Competition mode</div>
-            <div className="card">
-              <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Use the <strong style={{ color: 'var(--text)' }}>Log</strong> tab and switch to <strong style={{ color: 'var(--text)' }}>Competition</strong> mode to submit your session feedback after each comp session.
-              </div>
-              <button className="btn" onClick={() => setTab('log')} style={{ marginTop: 14 }}>Go to Log →</button>
-            </div>
-            <div className="section-label" style={{ marginTop: 16 }}>Your profile</div>
-            <div className="card">
-              <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{profile.name}</div>
-                <div style={{ color: 'var(--text-secondary)' }}>{profile.team} · {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}</div>
-              </div>
-              <button className="btn btn-secondary" style={{ marginTop: 14 }} onClick={async () => {
-                const { supabase: sb } = await import('./lib/supabase')
-                await sb.auth.signOut()
-              }}>Sign out</button>
-            </div>
-          </div>
-        )}
-      </div>
+                {tab === 'comp' && <MiniComp profile={profile} />}
 
-      <div className="bottom-nav">
-        {tabs.map(t => (
-          <button key={t.id} className={`nav-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
-            <NavIcon id={t.id} />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {toast && <div className="toast">{toast}</div>}
-    </div>
-  )
-}
