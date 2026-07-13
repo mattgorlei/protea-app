@@ -21,6 +21,7 @@ export default function PrepChecklist({ profile }) {
   const [view, setView] = useState('my_prep') // 'my_prep' | 'team_overview'
   const [showAddForm, setShowAddForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [viewingImage, setViewingImage] = useState(null)
 
   // Add item form state
   const [newText, setNewText] = useState('')
@@ -33,7 +34,7 @@ export default function PrepChecklist({ profile }) {
   const fetchData = useCallback(async () => {
     setLoading(true)
     const [itemsRes, completionsRes, fliesRes, profilesRes] = await Promise.all([
-      supabase.from('prep_items').select('*, flies(name, photo_url)').order('created_at'),
+      supabase.from('prep_items').select('*, flies(name, size, photo_url)').order('created_at'),
       supabase.from('prep_completions').select('*'),
       supabase.from('flies').select('*').order('name'),
       supabase.from('profiles').select('id, name, initials, team').order('name'),
@@ -73,10 +74,22 @@ export default function PrepChecklist({ profile }) {
     setSaving(true)
     const fly = flies.find(f => f.id === newFlyId)
     const text = newText || (fly ? `${fly.name}${newSize ? ` #${newSize}` : ''}${newBead && newBead !== 'None' ? ` · ${newBead} bead` : ''}${newQty ? ` · Qty: ${newQty}` : ''}` : '')
+    // If manually entered fly name in fly_tying section, add to flybox too
+    let flyId = newFlyId || null
+    if (activeSection === 'fly_tying' && !newFlyId && newText) {
+      const { data: newFly } = await supabase.from('flies').insert({
+        name: newText,
+        size: newSize || '?',
+        sector: null,
+        added_by: profile.id,
+      }).select().single()
+      if (newFly) flyId = newFly.id
+    }
+
     await supabase.from('prep_items').insert({
       section: activeSection,
       text,
-      fly_id: newFlyId || null,
+      fly_id: flyId,
       fly_size: newSize || null,
       bead_colour: newBead !== 'None' ? newBead : null,
       suggested_qty: newQty ? parseInt(newQty) : null,
@@ -115,6 +128,14 @@ export default function PrepChecklist({ profile }) {
     const i = (name || '').charCodeAt(0) % colors.length
     return { bg: colors[i], color: textColors[i] }
   }
+
+  if (viewingImage) return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+      onClick={() => setViewingImage(null)}>
+      <img src={viewingImage} alt="fly" style={{ maxWidth: '95vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 10 }} />
+      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 16 }}>Tap to close</div>
+    </div>
+  )
 
   if (loading) return <div className="screen active"><div className="spinner" /></div>
 
@@ -272,7 +293,12 @@ export default function PrepChecklist({ profile }) {
                     </button>
                     <div style={{ flex: 1 }}>
                       {fly?.photo_url && (
-                        <img src={fly.photo_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, marginBottom: 4 }} />
+                        <img
+                          src={fly.photo_url}
+                          alt=""
+                          onClick={(e) => { e.stopPropagation(); setViewingImage(fly.photo_url) }}
+                          style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, marginBottom: 6, cursor: 'pointer', border: '2px solid var(--border)' }}
+                        />
                       )}
                       <div style={{ fontSize: 14, color: done ? 'var(--text-muted)' : 'var(--text)', textDecoration: done ? 'line-through' : 'none' }}>{item.text}</div>
                       {item.suggested_qty && <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 2 }}>Qty: {item.suggested_qty}</div>}
