@@ -6,6 +6,9 @@ import Log from './pages/Log'
 import Flybox from './pages/Flybox'
 import Intel from './pages/Intel'
 import PracticeWaters from './pages/PracticeWaters'
+import Profile from './pages/Profile'
+import MiniComp from './pages/MiniComp'
+import PrepChecklist from './pages/PrepChecklist'
 
 function NavIcon({ id }) {
   const icons = {
