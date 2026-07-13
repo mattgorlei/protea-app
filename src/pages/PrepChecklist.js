@@ -293,12 +293,18 @@ export default function PrepChecklist({ profile }) {
                     </button>
                     <div style={{ flex: 1 }}>
                       {fly?.photo_url && (
-                        <img
-                          src={fly.photo_url}
-                          alt=""
-                          onClick={(e) => { e.stopPropagation(); setViewingImage(fly.photo_url) }}
-                          style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, marginBottom: 6, cursor: 'pointer', border: '2px solid var(--border)' }}
-                        />
+                        <div style={{ marginBottom: 6 }}>
+                          <img
+                            src={fly.photo_url}
+                            alt=""
+                            onClick={(e) => { e.stopPropagation(); setViewingImage(fly.photo_url) }}
+                            style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', border: '2px solid var(--border)', display: 'block' }}
+                          />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewingImage(fly.photo_url) }}
+                            style={{ fontSize: 11, color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 0', display: 'block' }}
+                          >View photo</button>
+                        </div>
                       )}
                       <div style={{ fontSize: 14, color: done ? 'var(--text-muted)' : 'var(--text)', textDecoration: done ? 'line-through' : 'none' }}>{item.text}</div>
                       {item.suggested_qty && <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 2 }}>Qty: {item.suggested_qty}</div>}
