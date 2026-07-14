@@ -68,11 +68,10 @@ function FlyCard({ fly, catchCount, showToast, onUpdated, profileId, isCoach }) 
     showToast('Fly updated')
   }
 
-  async function deleteFly() {
-    if (!window.confirm(`Delete "${fly.name}"?`)) return
-    await supabase.from('flies').delete().eq('id', fly.id)
+  async function toggleArchive() {
+    await supabase.from('flies').update({ archived: !fly.archived }).eq('id', fly.id)
     onUpdated && onUpdated()
-    showToast('Fly removed')
+    showToast(fly.archived ? 'Fly restored' : 'Fly archived')
   }
 
   const displayPhoto = editPreview || fly.photo_url
@@ -122,6 +121,7 @@ function FlyCard({ fly, catchCount, showToast, onUpdated, profileId, isCoach }) 
         </>
       ) : (
         <>
+          {fly.archived && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>📦 Archived</div>}
           <div className="fly-name">{fly.name}</div>
           <div className="fly-meta">Size {fly.size}</div>
           {fly.sector && <div className="fly-meta">{fly.sector}</div>}
@@ -140,7 +140,7 @@ function FlyCard({ fly, catchCount, showToast, onUpdated, profileId, isCoach }) 
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
               <button onClick={() => setMode('edit')} style={{ flex: 1, fontSize: 11, color: 'var(--gold)', background: 'none', border: '0.5px solid rgba(255,179,2,0.3)', borderRadius: 6, padding: '5px', cursor: 'pointer' }}>✏️ Edit</button>
               <button onClick={() => setMode('photo')} style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', background: 'none', border: '0.5px solid var(--border)', borderRadius: 6, padding: '5px', cursor: 'pointer' }}>📷 Photo</button>
-              <button onClick={deleteFly} style={{ fontSize: 11, color: '#F09595', background: 'none', border: '0.5px solid rgba(240,149,149,0.3)', borderRadius: 6, padding: '5px 8px', cursor: 'pointer' }}>🗑️</button>
+              <button onClick={toggleArchive} style={{ fontSize: 11, color: fly.archived ? '#5DCAA5' : 'var(--text-muted)', background: 'none', border: '0.5px solid var(--border)', borderRadius: 6, padding: '5px 8px', cursor: 'pointer' }}>{fly.archived ? '↩️' : '📦'}</button>
             </div>
           ) : (
             <button onClick={() => setMode('photo')} style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Update photo</button>
@@ -165,6 +165,7 @@ export default function Flybox({ profile, showToast }) {
   const [sectorFilter, setSectorFilter] = useState('All')
 
   const isCoach = ['coach', 'manager'].includes(profile?.role?.toLowerCase())
+  const [showArchived, setShowArchived] = useState(false)
 
   async function fetchFlies() {
     const { data } = await supabase.from('flies').select('*, profiles(name)').order('created_at', { ascending: false })
@@ -227,7 +228,8 @@ export default function Flybox({ profile, showToast }) {
   }
   const ALL_SECTORS = ['All', ...SECTORS]
   const sectorOrder = ['Lough Craghy', 'Lough Anure', 'Lough Deele', 'River Dennett', 'River Quiggery', null]
-  const filteredFlies = sectorFilter === 'All' ? flies : flies.filter(f => (f.sector || 'General') === sectorFilter || (!f.sector && sectorFilter === 'General'))
+  const visibleFlies = flies.filter(f => showArchived ? f.archived : !f.archived)
+  const filteredFlies = sectorFilter === 'All' ? visibleFlies : visibleFlies.filter(f => (f.sector || 'General') === sectorFilter || (!f.sector && sectorFilter === 'General'))
   const groupedFlies = sectorOrder.reduce((acc, s) => {
     const group = filteredFlies.filter(f => (s === null ? !f.sector : f.sector === s))
     if (group.length) acc.push({ sector: s || 'General', flies: group })
@@ -238,9 +240,16 @@ export default function Flybox({ profile, showToast }) {
     <div className="screen active" id="screen-flybox">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div className="section-label" style={{ marginBottom: 0 }}>Team flybox · {flies.length} flies</div>
-        <button style={{ fontSize: 13, color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }} onClick={() => setShowAdd(v => !v)}>
-          {showAdd ? 'Cancel' : '+ Add fly'}
-        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {isCoach && (
+            <button style={{ fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setShowArchived(v => !v)}>
+              {showArchived ? '📦 Hide archived' : '📦 Archived'}
+            </button>
+          )}
+          <button style={{ fontSize: 13, color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }} onClick={() => setShowAdd(v => !v)}>
+            {showAdd ? 'Cancel' : '+ Add fly'}
+          </button>
+        </div>
       </div>
 
       {showAdd && (
